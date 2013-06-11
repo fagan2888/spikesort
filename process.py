@@ -7,10 +7,52 @@
 """
 
 import numpy as np
+from functools import wraps
+from Queue import Empty
 
 class ProcessingError(Exception):
     pass
-
+    
+def batch_process(func):
+    """ This is a decorator for running functions in multiple processes.
+        It should be applied only to functions with one positional argument
+        and an arbitrary number of keyword arguments.  The first argument
+        must be iterable.  Also, as it is written now, it will generate a
+        process for each item in the iterable first argument, so you will want
+        to be careful.  I'll change this to set a limit on the number of
+        processes it will create. #TODO
+    """
+    from multiprocessing import Process, Queue
+    
+    @wraps(func)
+    def batched(*args, **kwargs):
+        
+        # This function calls func and puts it in the queue
+        def f(q, dat, **kwargs):
+            q.put(func(dat, **kwargs))
+        
+        # Create the queue and processes
+        que = Queue()
+        jobs = [ Process(target=f, args=(que, dat), kwargs=kwargs) 
+                 for dat in args[0] ]
+        
+        # Run jobs and get the results
+        for job in jobs: job.start()
+        output = [ que.get() for i in range(len(jobs)) ]
+        
+        # Stop processes and such
+        for job in jobs: job.join(timeout=30)
+        for job in jobs: job.terminate()
+        for job in jobs: job.join(timeout=30)
+        que.close()
+        
+        if len(output) == 1:
+            return output[0]
+        else:
+            return output
+    
+    return batched
+    
 def tetrode_chans(tet_num):
     """ Returns the channel numbers for the requested tetrode.  These channels
         are only valid for the H04 adapter used in our lab.
@@ -19,8 +61,7 @@ def tetrode_chans(tet_num):
     tetrodes = {1:[16,18,17,20], 2:[19,22,21,24], 3:[23,26,25,28],
                 4:[27,30,29,32]}
         
-    return tetrode[tet_num]
-    
+    return tetrodes[tet_num]
     
 def load_data(filename, channels):
     ''' Loads data from an ns5 file.  This returns a generator, so you only get
@@ -32,29 +73,61 @@ def load_data(filename, channels):
     loader = ns5.Loader(filename)
     loader.load_file()
     
-    def channel_gen(channels):
-        for chan in channels:
-            yield loader.get_channel_as_array(chan)
-    
-    return channel_gen
-    
-def detect_spikes(data, threshold=4, patch_size=30):
-    """ Detect spikes in data.  Returns spike waveform patches and peak samples. 
+    for chan in channels:
+        yield loader.get_channel_as_array(chan)
+
+def common_reference(filename, channels):
+    """ Calculates the common average refernce from the data stored in a file,
+        from the chosen channels.
+    """
+    n = len(channels)
+    data = load_data(filename, channels)
+    return sum(data)/float(n)
+
+def process_data(filename, channels, common_reference=True):
+    """ This function processes the data from filename and returns an array
+        of tetrode spike waveforms and their spike timestamps.
     """
     
+    if common_reference:
+        car = common_reference(filename, range(16))
+    else:
+        car = 0
+    
+    data = load_data(filename, channels)
+    spikes = detect_spikes(data, common_reference=car)
+    
+    form_tetrode(load_data(filename, channels), spikes) 
+
+def form_tetrode(data, spikes):
+    """ Build tetrode waveforms from voltage data and detected spike times.
+    """
+    # Need to get spike times from every channel in the tetrode
+    times = np.concatenate([ spks['times'] for spks in spikes])
+    times = censor(times)
+    return
+    
+@batch_process
+def detect_spikes(data, threshold=4, patch_size=30, common_reference=None):
+    """ Detect spikes in data.  Returns spike waveform patches and peak samples. 
+    """
+    if common_reference:
+        data = data - common_reference
     filtered = butter_filter(data, low=300, high=6000, rate=30000) 
     threshold = medthresh(filtered, threshold)
-    peaks = crossings(filtered, threshold)
+    peaks = crossings(filtered, threshold, polarity='neg')
     peaks = censor(peaks, 30)
     
     spikes, times = extract(data, peaks, patch_size=patch_size)
     
-    detected = np.zeros(len(times), 
-             dtype=[('spikes', 'f8', 4*patch_size), ('times', 'f8', 1)])
-    detected['spikes'], detected['times'] = spikes, times
+    records = [('spikes', 'f8', patch_size), ('times', 'f8', 1)]
+    detected = np.zeros(len(times), dtype=records)
+    detected['spikes'] = spikes
+    detected['times'] = times
     
     return detected
 
+@batch_process
 def medthresh(data, threshold=4):
     """ A function that calculates the spike crossing threshold 
         based off the median value of the data.
@@ -66,6 +139,7 @@ def medthresh(data, threshold=4):
     """
     return threshold*np.median(np.abs(data)/0.6745)
 
+@batch_process
 def butter_filter(data, low=300, high=6000, rate=30000):
     """ Uses a 3-pole Butterworth filter to reduce the noise of data.
     
@@ -167,10 +241,10 @@ def extract(data, peaks, patch_size=30, offset=0, polarity='neg'):
             peak_sample = patch.argmax()
         elif polarity == 'neg':
             peak_sample = patch.argmin()
-        peak_sample = peak-size+peak_sample
         centered = peak-size+peak_sample+offset
+        peak_sample = peak-size+peak_sample
         final_patch = data[centered-size:centered+size]
         peak_samples.append(peak_sample)
         spikes.append(final_patch)
         
-    return np.array(spikes), np.array(centered_peaks)
+    return np.array(spikes), np.array(peak_samples)
