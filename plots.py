@@ -5,8 +5,6 @@ from functools import wraps
 import matplotlib.pyplot as plt
 import numpy as np
 
-from cluster import load_clusters
-
 def color_array(clusters, color_dict):
     """ Returns a 1D array with the color for each data point """
     
@@ -21,7 +19,6 @@ def plot_colors(K, colormap = plt.cm.Paired):
         colors = colormap(np.arange(0.0,1.0,1.0/K))
         color_dict = {cl:color for cl, color in zip(range(K), colors)}
         return color_dict
-
 
 def passed_or_new_ax(func):
     """ This is a decorator for the plots in this module.  Most plots can be
