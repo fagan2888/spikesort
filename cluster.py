@@ -64,7 +64,6 @@ class Clusters(dict):
         except TypeError as e:
             if 'not iterable' in e[0]:
                 clusters = [clusters]
-                self.select(clusters)
         
         return Clusters({cl:self[cl] for cl in clusters})
         
