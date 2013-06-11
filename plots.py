@@ -14,7 +14,7 @@ def color_array(clusters, color_dict):
     
     return col_array
     
-def plot_colors(K, colormap = plt.cm.Paired):
+def get_colors(K, colormap = plt.cm.Paired):
         ''' Method for setting the colors used when plotting clusters '''
         colors = colormap(np.arange(0.0,1.0,1.0/K))
         color_dict = {cl:color for cl, color in zip(range(K), colors)}

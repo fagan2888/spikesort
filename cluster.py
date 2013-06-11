@@ -141,7 +141,7 @@ class Viewer(object):
         
         cls = self.clusters.select(clusters)
         
-        colors = plt.plot_colors(len(self), self.cm)
+        colors = plt.get_colors(len(self), self.cm)
         cl_spikes = cls.spikes()
         
         fig, axes = plt.generate_axes(len(cls), 4, num=2, sharex=True)
@@ -163,7 +163,7 @@ class Viewer(object):
         
         cls = self.clusters.select(clusters)
         
-        colors = plt.plot_colors(len(self), self.cm)
+        colors = plt.get_colors(len(self), self.cm)
         times = cls.times()
         fig, axes = plt.generate_axes(len(cls), 4, num=3)
         for ax, cl in zip(axes, times):
@@ -185,7 +185,7 @@ class Viewer(object):
         cls = Clusters({cl:plt.limit_data(cls[cl], limit) for cl in cls})
         
         # Get the color and feature arrays for fast plotting
-        colors = plt.plot_colors(len(self), self.cm)
+        colors = plt.get_colors(len(self), self.cm)
         col_array = plt.color_array(cls, colors)
         feats = cls.features().flatten()
         
