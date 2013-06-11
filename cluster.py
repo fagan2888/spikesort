@@ -11,11 +11,13 @@ from sklearn.mixture import GMM
 import plots as plt
 
 def fit_pca(data, dims):
+    """ Fit PCA decomposition to the data with dims components """
     pca = PCA(n_components=dims)
     x = data - np.mean(data, axis=0)
     return pca, pca.fit_transform(x)
      
 def fit_ica(data, dims):
+    """ Fit ICA decomposition to the data with dims components """
     ica = FastICA(n_components=dims)
     x = data - np.mean(data, axis=0)
     return ica, ica.fit_transform(x)
