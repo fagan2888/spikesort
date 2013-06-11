@@ -11,6 +11,39 @@ from sklearn.decomposition import PCA, FastICA
 from sklearn.mixture import GMM
 import plots as plt
 
+def fit_pca(data, dims):
+    pca = PCA(n_components=dims)
+    x = data - np.mean(data, axis=0)
+    return pca, pca.fit_transform(x)
+     
+def fit_ica(data, dims):
+    ica = FastICA(n_components=dims)
+    x = data - np.mean(data, axis=0)
+    return ica, ica.fit_transform(x)
+
+def cluster(data, **kwargs):
+    """ Fit a GMM to the data, forming clusters of similar data points.
+    """
+    
+    X = data
+    gmm = GMM(n_components = kwargs['K'],
+              covariance_type = kwargs['cov_type'],
+              )
+    
+    while not gmm.converged_:
+        gmm.init_params = ''
+        gmm.fit(X)
+    
+    predicted = gmm.predict(X)
+    clusters = { cl:np.where(predicted==cl)[0] for cl in np.unique(predicted)}
+    return gmm, clusters
+    
+def load_clusters(filepath):
+    import cPickle as pkl
+    with open(filepath, 'r') as f:
+        clusters = pkl.load(f)
+    return clusters
+
 class Clusters(dict):
     
     def __init__(self, other=None):
@@ -206,36 +239,4 @@ class Sorter(Viewer):
             
     def __repr__(self):
         return str(self.params)
-        
-def fit_pca(data, dims):
-    pca = PCA(n_components=dims)
-    x = data - np.mean(data, axis=0)
-    return pca, pca.fit_transform(x)
-     
-def fit_ica(data, dims):
-    ica = FastICA(n_components=dims)
-    x = data - np.mean(data, axis=0)
-    return ica, ica.fit_transform(x)
-
-def cluster(data, **kwargs):
-    """ Fit a GMM to the data, forming clusters of similar data points.
-    """
     
-    X = data
-    gmm = GMM(n_components = kwargs['K'],
-              covariance_type = kwargs['cov_type'],
-              )
-    
-    while not gmm.converged_:
-        gmm.init_params = ''
-        gmm.fit(X)
-    
-    predicted = gmm.predict(X)
-    clusters = { cl:np.where(predicted==cl)[0] for cl in np.unique(predicted)}
-    return gmm, clusters
-    
-def load_clusters(filepath):
-    import cPickle as pkl
-    with open(filepath, 'r') as f:
-        clusters = pkl.load(f)
-    return clusters
