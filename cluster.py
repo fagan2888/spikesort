@@ -6,7 +6,6 @@
 """
 
 import numpy as np
-from scipy.misc import comb
 from sklearn.decomposition import PCA, FastICA
 from sklearn.mixture import GMM
 import plots as plt
@@ -59,6 +58,9 @@ class Clusters(dict):
         """ Selects multiple clusters which you want returned for further 
             analysis.
         """
+        if clusters == None:
+            return self
+        
         try:
             cls = Clusters({cl:self[cl] for cl in clusters})
         except TypeError as e:
@@ -103,9 +105,10 @@ class Viewer(object):
     def scatter(self, clusters=None, components=[1,2,3], limit=500):
         """ Generates a scatter plot in feature space of the clustered data.
         """
-        
+        from scipy.misc import comb
         from itertools import combinations
         
+        components = [ c-1 for c in components ]
         feats, col_array = self._scatter_helper(clusters, limit)
         N_plots = int(comb(len(components), 2, exact=True))
         
@@ -117,14 +120,13 @@ class Viewer(object):
             ax.set_ylabel("Component {}".format(y))
         
         fig.tight_layout()
-        fig.canvas.draw()
         
         return self
     
     def scatter3D(self, clusters=None, components=[1,2,3], limit=500):
         """ Generates a 3D scatter plot for viewing clusters. 
         """
-        cx, cy, cz = components
+        cx, cy, cz = [ c-1 for c in components ]
         feats, col_array = self._scatter_helper(clusters, limit)
         x, y, z = feats[:,cx], feats[:,cy], feats[:,cz]
         ax = plt.scatter3D(x, y, z, colors = col_array)
@@ -136,10 +138,8 @@ class Viewer(object):
     def spikes(self, clusters=None, limit=50):
         """ Generates plots of clustered spike waveforms.
         """
-        if clusters:
-            cls = self.clusters.select(clusters)
-        else:
-            cls = self.clusters
+        
+        cls = self.clusters.select(clusters)
         
         colors = plt.plot_colors(len(self), self.cm)
         cl_spikes = cls.spikes()
@@ -160,10 +160,8 @@ class Viewer(object):
     def autocorrs(self, clusters=None, bin_width=0.0015, limit=0.03):
         """ Creates plots of autocorrelations for clustered spike times.
         """
-        if clusters:
-            cls = self.clusters.select(clusters)
-        else:
-            cls = self.clusters
+        
+        cls = self.clusters.select(clusters)
         
         colors = plt.plot_colors(len(self), self.cm)
         times = cls.times()
@@ -181,11 +179,8 @@ class Viewer(object):
         
     def _scatter_helper(self, clusters=None, limit=500):
         """ A helper method to generate the data for the scatter plots. """
-        if clusters:
-            cls = self.clusters.select(clusters)
-        else:
-            cls = self.clusters
         
+        cls = self.clusters.select(clusters)
         # Here, limit the data so that we don't plot everything
         cls = Clusters({cl:plt.limit_data(cls[cl], limit) for cl in cls})
         
