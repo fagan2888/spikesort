@@ -8,25 +8,29 @@
 
 import numpy as np
 from functools import wraps
-from Queue import Empty
 
 class ProcessingError(Exception):
     pass
-    
+
 def batch_process(func):
     """ This is a decorator for running functions in multiple processes.
         It should be applied only to functions with one positional argument
         and an arbitrary number of keyword arguments.  The first argument
-        must be iterable.  Also, as it is written now, it will generate a
-        process for each item in the iterable first argument, so you will want
-        to be careful.  I'll change this to set a limit on the number of
-        processes it will create. #TODO
+        must be a list or a generator for the batch process to work.  Also, 
+        as it is written now, it will generate a process for each item in the
+        iterable first argument, so you will want to be careful.  I'll change
+        this to set a limit on the number of processes it will create. #TODO
     """
     from multiprocessing import Process, Queue
+    from types import ListType, GeneratorType
     
     @wraps(func)
     def batched(*args, **kwargs):
-        
+
+        # Only do batches if data is in lists or generators
+        if type(args[0]) not in [ListType, GeneratorType]:
+            return func(*args, **kwargs)
+
         # This function calls func and puts it in the queue
         def f(q, dat, **kwargs):
             q.put(func(dat, **kwargs))
