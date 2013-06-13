@@ -76,9 +76,10 @@ def load_data(filename, channels):
     
     loader = ns5.Loader(filename)
     loader.load_file()
+    bit_to_V = 4096.0 / 2.**15 # mV/bit
     
     for chan in channels:
-        yield loader.get_channel_as_array(chan)
+        yield loader.get_channel_as_array(chan)*bit_to_V
 
 def common_reference(filename, channels):
     """ Calculates the common average refernce from the data stored in a file,
