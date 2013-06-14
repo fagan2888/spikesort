@@ -12,51 +12,19 @@ from functools import wraps
 class ProcessingError(Exception):
     pass
 
-def batch_process(func):
-    """ This is a decorator for running functions in multiple processes.
-        It should be applied only to functions with one positional argument
-        and an arbitrary number of keyword arguments.  The first argument
-        must be a list or a generator for the batch process to work.  Also, 
-        as it is written now, it will generate a process for each item in the
-        iterable first argument, so you will want to be careful.  I'll change
-        this to set a limit on the number of processes it will create. #TODO
+def map_parallel(func, data, processes=2):
+    """ This maps the data to func in parallel using multiple processes. 
+        This works fine in the IPython terminal, but not in IPython notebook.
     """
-    from multiprocessing import Process, Queue
-    from types import ListType, GeneratorType
-    
-    @wraps(func)
-    def batched(*args, **kwargs):
 
-        # Only do batches if data is in lists or generators
-        if type(args[0]) not in [ListType, GeneratorType]:
-            return func(*args, **kwargs)
+    from multiprocessing import Pool
+    pool = Pool(processes=processes)
+    output = pool.map(func, data)
+    pool.close()
+    pool.join()
+    
+    return output
 
-        # This function calls func and puts it in the queue
-        def f(q, dat, **kwargs):
-            q.put(func(dat, **kwargs))
-        
-        # Create the queue and processes
-        que = Queue()
-        jobs = [ Process(target=f, args=(que, dat), kwargs=kwargs) 
-                 for dat in args[0] ]
-        
-        # Run jobs and get the results
-        for job in jobs: job.start()
-        output = [ que.get() for i in range(len(jobs)) ]
-        
-        # Stop processes and such
-        for job in jobs: job.join(timeout=30)
-        for job in jobs: job.terminate()
-        for job in jobs: job.join(timeout=30)
-        que.close()
-        
-        if len(output) == 1:
-            return output[0]
-        else:
-            return output
-    
-    return batched
-    
 def tetrode_chans(tet_num):
     """ Returns the channel numbers for the requested tetrode.  These channels
         are only valid for the H04 adapter used in our lab.
@@ -81,46 +49,102 @@ def load_data(filename, channels):
     for chan in channels:
         yield loader.get_channel_as_array(chan)*bit_to_V
 
-def common_reference(filename, channels):
-    """ Calculates the common average refernce from the data stored in a file,
-        from the chosen channels.
+def common_ref(data, n=None):
+    """ Calculates the common average reference from the data.  If the length
+        of data can't be found with len(), set n to the length of data.
     """
-    n = len(channels)
+    try:
+        n = len(data)
+    except:
+        n = n
     data = load_data(filename, channels)
     return sum(data)/float(n)
 
-def process_data(filename, channels, common_reference=True):
+def process_data(filename, channels, low=300, high=6000, rate=30000, 
+                 common_ref=None):
     """ This function processes the data from filename and returns an array
         of tetrode spike waveforms and their spike timestamps.
     """
-    
-    if common_reference:
-        car = common_reference(filename, range(16))
+
+    # Detect the spike times first
+    if common_ref != None:
+        data = ( dat - common_ref for dat in load_data(filename, channels) )
     else:
-        car = 0
+        data = load_data(filename, channels)
+    filtered = bfilter(data, low=low, high=high, rate=rate)
+    spikes = detect_spikes(filtered)
     
+    # Then use those spike times to form the tetrode waveforms.  We want to
+    # extract from the data without the common reference removed.
     data = load_data(filename, channels)
-    spikes = detect_spikes(data, common_reference=car)
-    
-    form_tetrode(load_data(filename, channels), spikes) 
+    filtered = bfilter(data, low=low, high=high, rate=rate)
+    spikes = detect_spikes(filtered)
+    extracted = form_tetrode(filtered, spikes)
+    return extracted
 
 def form_tetrode(data, spikes):
     """ Build tetrode waveforms from voltage data and detected spike times.
+
+        Arguments
+        ---------
+        data : the data from which to extract the spike waveforms
+        spikes : recarray from detect_spikes.  Should have a field 'times'.
+            The times are used to extract waveforms from data.
     """
     # Need to get spike times from every channel in the tetrode
     times = np.concatenate([ spks['times'] for spks in spikes])
     times = censor(times)
-    return
+    extracted = np.array([ extract(dat, times)[0] for dat in data ])
+    n_electrodes, n_spikes, n_samples = extracted.shape
+    extracted = extracted.reshape((n_spikes, n_electrodes*n_samples))
     
-@batch_process
-def detect_spikes(data, threshold=4, patch_size=30, common_reference=None):
-    """ Detect spikes in data.  Returns spike waveform patches and peak samples. 
+    records = [('spikes',' f8', n_electrodes*n_samples), ('times', 'f8', 1)]
+    spikes = np.zeros(n_spikes, dtype=records)
+    spikes['spikes'] = extracted
+    spikes['times'] = times
+    return spikes
+
+def save_spikes(filename, spikes):
+    """ Saves spikes record array to file. """
+
+    with open(filename, 'w') as f:
+        spikes.tofile(f)
+    print('Saved to {}'.format(filename))
+
+def load_spikes(filename, ncols=120):
+    """ Loads recarray saved with save_spikes.  The keyword ncols should be
+        set to the length of the spike waveform.
     """
-    if common_reference:
-        data = data - common_reference
-    filtered = butter_filter(data, low=300, high=6000, rate=30000) 
-    threshold = medthresh(filtered, threshold)
-    peaks = crossings(filtered, threshold, polarity='neg')
+
+    with open(filename, 'r') as f:
+        loaded = np.fromfile(filename)
+
+    spikes = loaded.reshape(len(loaded)/(ncols+1), ncols+1)
+    records = [('spikes', 'f8', ncols), ('times', 'f8', 1)]
+    recarray = np.zeros(len(spikes), dtype = records)
+    recarray['spikes'] = spikes[:,:120]
+    recarray['times'] = spikes[:,-1]
+
+    return recarray
+
+def detect_spikes(data, threshold=4, patch_size=30):
+    """ Detect spikes in data.  Returns spike waveform patches and peak 
+        samples.
+
+        Arguments
+        ---------
+        data : np.array : data to extract spikes from
+
+        Keyword Arguments
+        -----------------
+        threshold : int, float : threshold*sigma for detection
+        patch_size : int : number of samples for extracted spike
+    """
+    import time
+    start = time.time()
+ 
+    threshold = medthresh(data, threshold=threshold)
+    peaks = crossings(data, threshold, polarity='neg')
     peaks = censor(peaks, 30)
     
     spikes, times = extract(data, peaks, patch_size=patch_size)
@@ -130,9 +154,12 @@ def detect_spikes(data, threshold=4, patch_size=30, common_reference=None):
     detected['spikes'] = spikes
     detected['times'] = times
     
+    elapsed = time.time() - start
+    print("Detected {} spikes in {} seconds".format(len(times), elapsed))
+
     return detected
 
-@batch_process
+
 def medthresh(data, threshold=4):
     """ A function that calculates the spike crossing threshold 
         based off the median value of the data.
@@ -144,9 +171,8 @@ def medthresh(data, threshold=4):
     """
     return threshold*np.median(np.abs(data)/0.6745)
 
-@batch_process
-def butter_filter(data, low=300, high=6000, rate=30000):
-    """ Uses a 3-pole Butterworth filter to reduce the noise of data.
+def bfilter(data, low=300, high=6000, rate=30000):
+    """ Filters the data with a 3-pole Butterworth bandpass filter.
     
         Arguments
         ---------
