@@ -82,7 +82,7 @@ def process_data(filename, channels, low=300, high=6000, rate=30000,
     extracted = form_tetrode(filtered, spikes)
     return extracted
 
-def form_tetrode(data, spikes):
+def form_tetrode(data, spikes, rate=30000):
     """ Build tetrode waveforms from voltage data and detected spike times.
 
         Arguments
@@ -101,7 +101,7 @@ def form_tetrode(data, spikes):
     records = [('spikes',' f8', n_electrodes*n_samples), ('times', 'f8', 1)]
     spikes = np.zeros(n_spikes, dtype=records)
     spikes['spikes'] = extracted
-    spikes['times'] = times
+    spikes['times'] = times/float(rate)
     return spikes
 
 def save_spikes(filename, spikes):
