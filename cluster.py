@@ -199,12 +199,25 @@ class Viewer(object):
 class Sorter(Viewer):
     """ This class performs the clustering using a Gaussian Mixture Model.
         It inherits from Viewer for plotting the results of the clustering.
+
+        Parameters
+        ----------
+        K : int : default = 9
+            number of clusters to fit to the data
+        dims : int : default = 10
+            number of dimensions to reduce the data into
+        cov_type : 'tied' or 'full' : default = 'full'
+            type of covariance matrix to use in the GMM, 'tied' is faster,
+            but less accurate than 'full'
+        decomp : 'pca' or 'ica' : default = 'pca'
+            use PCA or ICA to reduce the dimensions of the data
     """
     
     decomps = {'pca':fit_pca, 'ica':fit_ica}
-    params = {'K':9, 'dims':10, 'cov_type':'tied', 'decomp':'pca'}
+    params = {'K':9, 'dims':10, 'cov_type':'full', 'decomp':'pca'}
     
     def __init__(self, **kwargs):
+        
         self.params.update(kwargs)
         self.data = None
         self.gmm, self.clusters = None, None
