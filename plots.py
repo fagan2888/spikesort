@@ -4,6 +4,7 @@ from functools import wraps
 
 import matplotlib.pyplot as plt
 import numpy as np
+from process import trim_data
 
 def color_array(clusters, color_dict):
     """ Returns a 1D array with the color for each data point """
@@ -134,42 +135,7 @@ def limit_data(data, max_limit):
     else:
         chosen = np.random.choice(N, size=int(max_limit), replace=False)
     return data[chosen]
-
-def trim_data(*args, **kwargs):
-    """ Returns a smaller number of data points, reduced by the value of trim.
-        Useful for plotting fewer points for speed purposes.
-        
-        Arguments
-        ---------
-        Any number of position arguments.  They should all be numpy arrays of
-        the same dimension.
-        
-        Keyword Arguments
-        -----------------
-        trim : float between 0 and 1, inclusive. 
-            This is the factor the data points are trimmed by.
-        
     """
-    
-    if 'trim' in kwargs:
-        trim = kwargs['trim']
-    else:
-        trim = 1
-    
-    trimmed=[]
-    if 0 <= trim <= 1:
-        N = len(args[0])
-        chosen = np.random.choice(N, size=int(trim*N), replace=False)
-        for i, arg in enumerate(args[:]):
-            trimmed.append(arg[chosen])
-        
-        if len(trimmed)>1:
-            return trimmed
-        else:
-            return trimmed[0]
-            
-    else:
-        raise ValueError("trim must be between 0 and 1.")
     
 def correlogram(t1, t2=None, bin_width=.001, limit=.02, auto=False):
     
