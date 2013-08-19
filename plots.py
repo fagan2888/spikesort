@@ -85,6 +85,7 @@ def spikes(data, ax=None, color='r', limit=50):
     for x, p, m in zip(xs, patches, means):
         ax.plot(x, p, color=color, alpha=0.3)
         ax.plot(x, m, color='k')
+        ax.set_xlim((0,150))
     
     return ax
 
@@ -109,9 +110,17 @@ def scatter3D(x, y, z, ax=None, trim=1, colors='k'):
 
 @passed_or_new_ax
 def autocorr(times, ax=None, color='k', bin_width=0.0015, limit=0.03):
-    
     counts, bins = correlogram(times, bin_width = bin_width, 
                                 limit = limit, auto=True)
+    ax.bar(bins[:-1]*1000, counts, width = bin_width*1000, 
+           color = color, edgecolor = 'none')
+    ax.set_xlim((-limit-bin_width)*1000, (limit+bin_width)*1000)
+    return ax
+
+@passed_or_new_ax
+def crosscorr(t1, t2, ax=None, color='k', bin_width=0.0015, limit=0.03):
+    counts, bins = correlogram(t1, t2, bin_width = bin_width, 
+                                limit = limit, auto=False)
     ax.bar(bins[:-1]*1000, counts, width = bin_width*1000, 
            color = color, edgecolor = 'none')
     ax.set_xlim((-limit-bin_width)*1000, (limit+bin_width)*1000)
@@ -126,6 +135,20 @@ def generate_axes(N_plots, ncols, **kwargs):
     
     return fig, axes
 
+def generate_crosscorr_axes(n_rows, n_cols, **kwargs):
+    """ Return a dict of indices and axes for the figure used in 
+        cross-correlations. """
+    
+    # Build a list used to iterate through all the correlograms
+    l_rows = np.arange(n_rows+1)
+    l_cols = np.arange(n_cols)
+    ind = [(x, y) for x in l_rows for y in l_cols if y >= x]
+
+    fig = plt.figure(**kwargs)
+    axes = { (ii,jj): fig.add_subplot(n_rows, n_cols, ii*n_cols + jj + 1) 
+             for ii, jj in ind }
+    return fig, axes
+
 def limit_data(data, max_limit):
     """ Returns data points limited in number by max_limit """
     
@@ -135,7 +158,6 @@ def limit_data(data, max_limit):
     else:
         chosen = np.random.choice(N, size=int(max_limit), replace=False)
     return data[chosen]
-    """
     
 def correlogram(t1, t2=None, bin_width=.001, limit=.02, auto=False):
     
