@@ -6,6 +6,7 @@
 """
 
 import numpy as np
+
 from sklearn.decomposition import PCA, FastICA
 from sklearn.mixture import GMM
 import plots as plt
@@ -24,9 +25,16 @@ def fit_ica(data, dims):
 
 def cluster(data, **kwargs):
     """ Fit a GMM to the data, forming clusters of similar data points.
+
+        Keyword Argument
+        ----------------
+        assign_prob : float : the lower probability limit that a data points
+            belongs to a cluster to assign it to that cluster.  Defaults to
+            0.5.
     """
     
     X = data
+    assign_prob = kwargs.get('assign_prob', 0.5)
     gmm = GMM(n_components = kwargs['K'],
               covariance_type = kwargs['cov_type'],
               )
@@ -46,6 +54,11 @@ def load_clusters(filepath):
     return clusters
 
 class Clusters(dict):
+    """ A dictionary that contains clustered data. 
+
+        Examples:
+        clusters = Clusters()
+    """
     
     def __init__(self, other=None):
         super(dict, self).__init__()
@@ -60,14 +73,8 @@ class Clusters(dict):
         """ Selects multiple clusters which you want returned for further 
             analysis.
         """
-        if clusters == None:
+        if clusters is None:
             return self
-        
-        try:
-            cls = Clusters({cl:self[cl] for cl in clusters})
-        except TypeError as e:
-            if 'not iterable' in e[0]:
-                clusters = [clusters]
         
         return Clusters({cl:self[cl] for cl in clusters})
         
@@ -137,16 +144,16 @@ class Viewer(object):
         
         return self
         
-    def spikes(self, clusters=None, limit=50):
+    def spikes(self, clusters=None, limit=50, figsize=(9,5)):
         """ Generates plots of clustered spike waveforms.
         """
         
         cls = self.clusters.select(clusters)
-        
-        colors = plt.get_colors(len(self), self.cm)
         cl_spikes = cls.spikes()
+        colors = plt.get_colors(max(self.clusters.keys()) + 1, self.cm)
         
-        fig, axes = plt.generate_axes(len(cls), 4, num=2, sharex=True)
+        fig, axes = plt.generate_axes(len(cls), 4, num=2, sharex=True,
+                                      figsize=figsize)
         for ax, cl in zip(axes, cl_spikes):
             ax.clear()
             spks = cl_spikes[cl]
@@ -159,18 +166,19 @@ class Viewer(object):
         
         return self
         
-    def autocorrs(self, clusters=None, bin_width=0.0015, limit=0.03):
-        """ Creates plots of autocorrelations for clustered spike times.
+    def autocorrs(self, clusters=None, bin_width=0.0015, limit=0.03, 
+                        figsize=(9,5)):
+        """ Plots of autocorrelations of clustered spike times.
         """
         
         cls = self.clusters.select(clusters)
+        cl_times = cls.times()
+        colors = plt.get_colors(max(self.clusters.keys()) + 1, self.cm)
         
-        colors = plt.get_colors(len(self), self.cm)
-        times = cls.times()
-        fig, axes = plt.generate_axes(len(cls), 4, num=3)
-        for ax, cl in zip(axes, times):
+        fig, axes = plt.generate_axes(len(cls), 4, num=3, figsize=figsize)
+        for ax, cl in zip(axes, cl_times):
             ax.clear()
-            tstamps = times[cl]
+            tstamps = cl_times[cl]
             plt.autocorr(tstamps, ax=ax, color=colors[cl], 
                          bin_width=bin_width, limit=limit)
             ax.set_title('Cluster {}'.format(cl))
@@ -178,7 +186,38 @@ class Viewer(object):
         fig.tight_layout()
         
         return self
+
+    def crosscorrs(self, clusters=None, bin_width=0.0015, limit=0.03, 
+                         figsize=(9,5)):
+        """ Plots of cross-correlations of clustered spike times. """
+
+        times = self.clusters.select(clusters).times()
+        colors = plt.get_colors(max(self.clusters.keys()) + 1, self.cm)
         
+        # Set the number of rows and columns to plot
+        n_rows, n_cols = [len(times)]*2
+        fig, axes = plt.generate_crosscorr_axes(n_rows, n_cols, num=4,
+                                                figsize=figsize)
+        
+        for (ii, jj) in axes:
+            ax = axes[(ii,jj)]
+            cl1, cl2 = times.keys()[ii], times.keys()[jj]
+            t1, t2 = times[cl1], times[cl2]
+            # Get the cross-correlation for different clusters
+            if ii != jj:
+                plt.crosscorr(t1, t2, ax=ax, bin_width=bin_width, limit=limit)
+                ax.set_xticklabels('')
+                ax.set_yticklabels('')
+            
+            # If cluster 1 is the same as cluster 2, get the autocorrelation
+            else:
+                plt.autocorr(t1, ax=ax, color=colors[cl1],
+                                 bin_width=bin_width, limit=limit)
+                ax.set_ylabel('{}'.format(cl1))
+                ax.set_yticklabels('')
+        
+        return self
+
     def _scatter_helper(self, clusters=None, limit=500):
         """ A helper method to generate the data for the scatter plots. """
         
@@ -187,7 +226,7 @@ class Viewer(object):
         cls = Clusters({cl:plt.limit_data(cls[cl], limit) for cl in cls})
         
         # Get the color and feature arrays for fast plotting
-        colors = plt.get_colors(len(self), self.cm)
+        colors = plt.get_colors(max(self.clusters.keys()) + 1, self.cm)
         col_array = plt.color_array(cls, colors)
         feats = cls.features().flatten()
         
@@ -225,7 +264,7 @@ class Sorter(Viewer):
 
     def sort(self, data):
         self.data = data
-        data = data['waveforms']
+        data = data['spikes']
         _, spike_size = data.shape
         
         decomp_func = self.decomps[self.params['decomp']]
@@ -240,7 +279,7 @@ class Sorter(Viewer):
                                   ('times', 'f8', 1),
                                   ('feats', 'f8', self.params['dims'])
                                   ])
-            recs['spikes']= self.data['waveforms'][cl]
+            recs['spikes']= self.data['spikes'][cl]
             recs['times'] = self.data['times'][cl]
             recs['feats'] = reduced[cl]
             recs.sort(order='times')
