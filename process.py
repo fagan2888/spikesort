@@ -35,7 +35,7 @@ def tetrode_chans(tet_num):
         
     return tetrodes[tet_num]
     
-def load_data(filename, channels):
+def load_data(filename, channels=None, tetrode=None):
     ''' Loads data from an ns5 file.  This returns a generator, so you only get
         one channel at a time, but you don't have to load in all the channels
         at once, saving memory since it is a LOT of data.
@@ -46,6 +46,9 @@ def load_data(filename, channels):
     loader.load_file()
     bit_to_V = 4096.0 / 2.**15 # mV/bit
     
+    if tetrode:
+        channels = tetrode_chans(tetrode)
+
     for chan in channels:
         yield loader.get_channel_as_array(chan)*bit_to_V
 
@@ -57,7 +60,6 @@ def common_ref(data, n=None):
         n = len(data)
     except:
         n = n
-    data = load_data(filename, channels)
     return sum(data)/float(n)
 
 def process_data(filename, channels, low=300, high=6000, rate=30000, 
@@ -78,31 +80,9 @@ def process_data(filename, channels, low=300, high=6000, rate=30000,
     # extract from the data without the common reference removed.
     data = load_data(filename, channels)
     filtered = bfilter(data, low=low, high=high, rate=rate)
-    spikes = detect_spikes(filtered)
+    spikes = map_parallel(detect_spikes, filtered)
     extracted = form_tetrode(filtered, spikes)
     return extracted
-
-def form_tetrode(data, spikes, rate=30000):
-    """ Build tetrode waveforms from voltage data and detected spike times.
-
-        Arguments
-        ---------
-        data : the data from which to extract the spike waveforms
-        spikes : recarray from detect_spikes.  Should have a field 'times'.
-            The times are used to extract waveforms from data.
-    """
-    # Need to get spike times from every channel in the tetrode
-    times = np.concatenate([ spks['times'] for spks in spikes])
-    times = censor(times)
-    extracted = np.array([ extract(dat, times)[0] for dat in data ])
-    n_electrodes, n_spikes, n_samples = extracted.shape
-    extracted = extracted.reshape((n_spikes, n_electrodes*n_samples))
-    
-    records = [('spikes',' f8', n_electrodes*n_samples), ('times', 'f8', 1)]
-    spikes = np.zeros(n_spikes, dtype=records)
-    spikes['spikes'] = extracted
-    spikes['times'] = times/float(rate)
-    return spikes
 
 def save_spikes(filename, spikes):
     """ Saves spikes record array to file. """
@@ -158,6 +138,28 @@ def detect_spikes(data, threshold=4, patch_size=30):
     print("Detected {} spikes in {} seconds".format(len(times), elapsed))
 
     return detected
+
+def form_tetrode(data, times, patch_size=30, offset=0, samp_rate=30000):
+    """ Build tetrode waveforms from voltage data and detected spike times.
+
+        Arguments
+        ---------
+        data : the data from which to extract the spike waveforms
+        spikes : recarray from detect_spikes.  Should have a field 'times'.
+            The times are used to extract waveforms from data.
+    """
+
+    extracted = [ extract(chan, times, 
+                          patch_size=patch_size,
+                          offset=offset) 
+                  for chan in data]
+    waveforms = np.concatenate([ wv for wv, time in extracted ], axis=1)
+    records = [('spikes', 'f8', patch_size*4), ('times', 'f8', 1)]
+    tetrodes = np.zeros(len(times), dtype=records)
+    tetrodes['spikes'] = waveforms
+    tetrodes['times'] = times/float(samp_rate)
+
+    return tetrodes
 
 def trim_data(*args, **kwargs):
     """ Returns a smaller number of data points, reduced by the value of trim.
