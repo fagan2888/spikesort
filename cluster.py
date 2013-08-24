@@ -79,14 +79,8 @@ class Clusters(dict):
         clusters = Clusters()
     """
     
-    def __init__(self, other=None):
-        super(dict, self).__init__()
-        
-        if other:
-            try:
-                self.update(other)
-            except TypeError:
-                raise ValueError("Initialize as you would when calling dict()")
+    def __init__(self, *args, **kwargs):
+        super(Clusters, self).__init__(*args, **kwargs)
             
     def select(self, clusters):
         """ Selects multiple clusters which you want returned for further 
