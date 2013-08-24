@@ -12,7 +12,7 @@ from functools import wraps
 class ProcessingError(Exception):
     pass
 
-def map_parallel(func, data, processes=2):
+def map(func, data, processes=2):
     """ This maps the data to func in parallel using multiple processes. 
         This works fine in the IPython terminal, but not in IPython notebook.
     """
