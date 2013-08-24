@@ -260,7 +260,7 @@ class Viewer(object):
 
 class Sorter(Viewer):
     """ This class performs the clustering using a Gaussian Mixture Model.
-        It inherits from Viewer for plotting the results of the clustering.
+        It uses Viewer for plotting the results of the clustering.
 
         Parameters
         ----------
@@ -286,6 +286,7 @@ class Sorter(Viewer):
         self.cm = plt.plt.cm.Paired
 
     def sort(self, data):
+        """ Sort the data into clusters based on spike waveform features. """
         self.data = data
         data = data['spikes']
         _, spike_size = data.shape
