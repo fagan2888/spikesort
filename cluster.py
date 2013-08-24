@@ -293,11 +293,11 @@ class Sorter(Viewer):
         
         decomp_func = self.decomps[self.params['decomp']]
         decomped, reduced = decomp_func(data, dims=self.params['dims'])
-        self.gmm, clusters = cluster(reduced, **self.params)
+        self.gmm, clustered = cluster(reduced, **self.params)
         
         self.clusters = Clusters()
-        for c_id in clusters:
-            cl = clusters[c_id]
+        for c_id in clustered:
+            cl = clustered[c_id]
             N = len(cl)
             recs = np.zeros(N, dtype=[('spikes', 'f8', spike_size),
                                   ('times', 'f8', 1),
