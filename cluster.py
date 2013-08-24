@@ -97,6 +97,14 @@ class Clusters(dict):
     def flatten(self):
         """ Flattens the clusters into a single array """
         return np.concatenate([self[cl] for cl in self])
+
+    def combine(self, source, destination):
+        """ Combine source cluster into destination cluster. """
+        combined = np.concatenate([self.pop(source), self[destination]])
+        combined.sort(order='times')
+        self.update({destination:combined})
+        return self
+
     
     def __repr__(self):
         return str("Clusters: {}".format(self.sizes()))
