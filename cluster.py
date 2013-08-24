@@ -339,5 +339,6 @@ class Sorter(Viewer):
         return len(self.clusters)
 
     def __repr__(self):
+        self.params['K'] = len(self.clusters)
         return str(self.params)
     
