@@ -118,6 +118,8 @@ class Clusters(dict):
         self.update({destination:combined})
         return self
 
+    def copy(self):
+        return Clusters(super(Clusters, self).copy())
     
     def __repr__(self):
         return str("Clusters: {}".format(self.sizes()))
