@@ -329,6 +329,15 @@ class Sorter(Viewer):
         self.clusters.combine(source, destination)
         return self
 
+    def save(self, filename):
+        import cPickle as pkl
+        with open(filename, 'w') as f:
+            pkl.dump(self.clusters, f)
+        print("{} clusters saved as {}".format(len(self), filename))
+
+    def __len__(self):
+        return len(self.clusters)
+
     def __repr__(self):
         return str(self.params)
     
