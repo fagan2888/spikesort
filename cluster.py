@@ -308,7 +308,12 @@ class Sorter(Viewer):
             recs['feats'] = reduced[cl]
             recs.sort(order='times')
             self.clusters[c_id] = recs
-            
+    
+    def bic(self):
+        """ Get the Baysian Information Criteria (BIC) for the model.
+        """
+        return self.gmm.bic(self.clusters.features().flatten())
+
     def __repr__(self):
         return str(self.params)
     
