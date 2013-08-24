@@ -28,23 +28,42 @@ def cluster(data, **kwargs):
 
         Keyword Argument
         ----------------
-        assign_prob : float : the lower probability limit that a data points
-            belongs to a cluster to assign it to that cluster.  Defaults to
-            0.5.
+        K : int : number of clusters to fit to the data, defaults to 10
+        cov_type : 'tied' or 'full' : type of covariance matrix to use in
+            the GMM.
+        assign_prob : float : the lower probability limit that a data point
+            belongs to a cluster to assign it to that cluster.  If not set,
+            assigns a point to the cluster with the highest probability.  Don't
+            set this to less than 0.5 since it is possible to have one data 
+            point with p>0.49 of belonging in two different clusters.
+
     """
     
     X = data
-    assign_prob = kwargs.get('assign_prob', 0.5)
-    gmm = GMM(n_components = kwargs['K'],
-              covariance_type = kwargs['cov_type'],
+    gmm = GMM(n_components = kwargs.get('K', 10),
+              covariance_type = kwargs.get('cov_type', 'full'),
               )
     
     while not gmm.converged_:
         gmm.init_params = ''
         gmm.fit(X)
+
+    if 'assign_prob' in kwargs:
+        assign_prob = kwargs['assign_prob']
+        probs = gmm.predict_proba(X)
+        
+        # Assign to clusters where p > assign_prob
+        inds, cls = np.where(probs>assign_prob)
+        clusters = {cl+1:inds[cls==cl] for cl in np.unique(cls)}
+        
+        # 0th cluster for data points that don't make it into any clusters.
+        clusters[0] = np.where((probs>assign_prob).any(axis=1) == False)[0]
     
-    predicted = gmm.predict(X)
-    clusters = { cl:np.where(predicted==cl)[0] for cl in np.unique(predicted)}
+    else:
+        predicted = gmm.predict(X)
+        clusters = { cl:np.where(predicted==cl)[0] 
+                     for cl in np.unique(predicted)}
+    
     return gmm, clusters
     
 def load_clusters(filepath):
