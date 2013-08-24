@@ -324,6 +324,11 @@ class Sorter(Viewer):
         for i, cl in zip(unused, clustered.itervalues()):
             self.clusters[i] = source_cluster[cl]
 
+    def combine(self, source, destination):
+        """ Combine two clusters, from source into destination. """
+        self.clusters.combine(source, destination)
+        return self
+
     def __repr__(self):
         return str(self.params)
     
