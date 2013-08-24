@@ -4,6 +4,7 @@ from functools import wraps
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from process import trim_data
 
 def color_array(clusters, color_dict):
