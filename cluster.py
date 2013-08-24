@@ -314,6 +314,16 @@ class Sorter(Viewer):
         """
         return self.gmm.bic(self.clusters.features().flatten())
 
+    def split(self, source, K=2):
+        """ Resort a cluster into K new clusters. """
+        source_cluster = self.clusters.pop(source)
+        _, clustered = cluster(source_cluster['feats'], K=K)
+
+        # Find unused cluster numbers and assign new clusters
+        unused = [ i for i in range(len(self)+K) if i not in self.clusters]
+        for i, cl in zip(unused, clustered.itervalues()):
+            self.clusters[i] = source_cluster[cl]
+
     def __repr__(self):
         return str(self.params)
     
