@@ -1,20 +1,29 @@
-""" This module is intended for processing raw electrical signals.  For
-    example, to detect and extract spikes or other threshold crossings from
-    an electrophysiology recording.
+""" 
+.. module:: process
+    :synopsis:  This module is intended for processing raw electrical signals.  For
+        example, to detect and extract spikes or other threshold crossings from
+        an electrophysiology recording.
     
-    Author: Mat Leonard
-    First version: June 6, 2013
+.. moduleauthor:: Mat Leonard <leonard.mat@gmail.com>
 """
 
 import numpy as np
-from functools import wraps
 
 class ProcessingError(Exception):
     pass
 
-def map(func, data, processes=2):
+def map(func, data, processes=4):
     """ This maps the data to func in parallel using multiple processes. 
         This works fine in the IPython terminal, but not in IPython notebook.
+
+        **Arguments**:
+            *func*:
+             Function to map the data with.
+            
+            *data*: Data sent to func.
+
+        **Returns**:
+            Returns whatever func returns.
     """
 
     from multiprocessing import Pool
@@ -25,64 +34,82 @@ def map(func, data, processes=2):
     
     return output
 
-def tetrode_chans(tet_num):
-    """ Returns the channel numbers for the requested tetrode.  These channels
-        are only valid for the H04 adapter used in our lab.
+def tetrode_chans(tetrode_num):
+    """ Return the channel numbers for the requested tetrode.  
+
+    .. warning::
+        These channels are only valid for the H04 and H05 adapters used in our
+        lab.
+
+    **Arguments**:
+        *tetrode_num*:
+         Tetrode number.
+    
+    **Returns**:
+        A list of channels belonging to the chosen tetrode.
+
     """
     
     tetrodes = {1:[16,18,17,20], 2:[19,22,21,24], 3:[23,26,25,28],
                 4:[27,30,29,32]}
         
-    return tetrodes[tet_num]
+    return tetrodes[tetrode_num]
     
-def load_data(filename, channels=None, tetrode=None):
-    ''' Loads data from an ns5 file.  This returns a generator, so you only get
-        one channel at a time, but you don't have to load in all the channels
-        at once, saving memory since it is a LOT of data.
-    '''
+def load_ns5(filename, channels=None):
+    """ Load data from an ns5 file.  
+
+        This returns a generator, so you only get one channel at a time, but 
+        you don't have to load in all the channels at once, saving memory 
+        since it is a LOT of data.  This only works with ns5 files currently.
+
+        **Arguments**:
+            *filename*:
+             A path to the data file.
+
+        **Keywords**:
+            *channels*:
+             The channels to load.
+
+        **Returns**:
+            A generator of numpy arrays containing the raw voltage signal from
+            the given channels.
+    """     
+
     import ns5
     
     loader = ns5.Loader(filename)
     loader.load_file()
-    bit_to_V = 4096.0 / 2.**15 # mV/bit
-    
-    if tetrode:
-        channels = tetrode_chans(tetrode)
+    bit_to_V = 4096.0 / 2.**15 # uV/bit
 
     for chan in channels:
         yield loader.get_channel_as_array(chan)*bit_to_V
 
 def common_ref(data, n=None):
-    """ Calculates the common average reference from the data.  If the length
-        of data can't be found with len(), set n to the length of data.
+    """ Calculates the common average reference from the data.  
+        
+        Calculate the common average reference from the data to subtract from
+        each channel of the raw data.  Doing this removes noise and artifacts
+        from the raw data so that spike detection performance is improved. If 
+        the length of data can't be found with len(), set n to the length 
+        of data.
+
+        **Arguments**:
+            *data*:
+             An iterator containing equal length arrays.
+
+        **Keywords**:
+            *n*:
+             The number of arrays in data.
+
+        **Returns**:
+            A numpy array of the average of the arrays in data.
     """
+
     try:
         n = len(data)
-    except:
+    except TypeError:
         n = n
-    return sum(data)/float(n)
-
-def process_data(filename, channels, low=300, high=6000, rate=30000, 
-                 common_ref=None):
-    """ This function processes the data from filename and returns an array
-        of tetrode spike waveforms and their spike timestamps.
-    """
-
-    # Detect the spike times first
-    if common_ref != None:
-        data = ( dat - common_ref for dat in load_data(filename, channels) )
-    else:
-        data = load_data(filename, channels)
-    filtered = bfilter(data, low=low, high=high, rate=rate)
-    spikes = detect_spikes(filtered)
-    
-    # Then use those spike times to form the tetrode waveforms.  We want to
-    # extract from the data without the common reference removed.
-    data = load_data(filename, channels)
-    filtered = bfilter(data, low=low, high=high, rate=rate)
-    spikes = map_parallel(detect_spikes, filtered)
-    extracted = form_tetrode(filtered, spikes)
-    return extracted
+    return np.sum(data)/float(n)
 
 def save_spikes(filename, spikes):
     """ Saves spikes record array to file. """
@@ -97,7 +124,7 @@ def load_spikes(filename, ncols=120):
     """
 
     with open(filename, 'r') as f:
-        loaded = np.fromfile(filename)
+        loaded = np.fromfile(f)
 
     spikes = loaded.reshape(len(loaded)/(ncols+1), ncols+1)
     records = [('spikes', 'f8', ncols), ('times', 'f8', 1)]
@@ -108,32 +135,46 @@ def load_spikes(filename, ncols=120):
     return recarray
 
 def detect_spikes(data, threshold=4, patch_size=30):
-    """ Detect spikes in data.  Returns spike waveform patches and peak 
-        samples.
+    """ Detect spikes in data.
 
-        Arguments
-        ---------
-        data : np.array : data to extract spikes from
+    **Arguments**:
+        *data*:
+         The data to extract spikes from, should be a numpy array.
 
-        Keyword Arguments
-        -----------------
-        threshold : int, float : threshold*sigma for detection
-        patch_size : int : number of samples for extracted spike
+    **Keywords**:
+        *threshold*:
+         The threshold for spike detection, approximately equal the number of
+         standard deviations of the noise.
+
+        *patch_size*:
+         The number of samples for an extracted spike patch.
+
+    **Returns**:
+        A numpy recarray with the following fields:
+
+        *spikes*:
+         An N x patch_size array of spike waveform patches, where N is the 
+         number of spikes detected.
+
+        *times*:
+         An array of time samples for the peak of each detected spike. 
+
     """
+
     import time
     start = time.time()
  
-    threshold = medthresh(data, threshold=threshold)
+    threshold = get_threshold(data, multiplier=threshold)
     peaks = crossings(data, threshold, polarity='neg')
     peaks = censor(peaks, 30)
     
     spikes, times = extract(data, peaks, patch_size=patch_size)
-    
+
     records = [('spikes', 'f8', patch_size), ('times', 'f8', 1)]
     detected = np.zeros(len(times), dtype=records)
     detected['spikes'] = spikes
     detected['times'] = times
-    
+
     elapsed = time.time() - start
     print("Detected {} spikes in {} seconds".format(len(times), elapsed))
 
@@ -142,11 +183,34 @@ def detect_spikes(data, threshold=4, patch_size=30):
 def form_tetrode(data, times, patch_size=30, offset=0, samp_rate=30000):
     """ Build tetrode waveforms from voltage data and detected spike times.
 
-        Arguments
-        ---------
-        data : the data from which to extract the spike waveforms
-        spikes : recarray from detect_spikes.  Should have a field 'times'.
-            The times are used to extract waveforms from data.
+    **Arguments**:
+        *data*:
+         The voltage signals of each channel in a the tetrode, used for 
+         extracting spikes.
+
+        *times*:
+         A numpy array containing the sample value for each spike.
+
+    **Keywords**:
+        *patch_size*: 
+         The number of samples to extract centered on peak + offset.
+            
+        *offset*: 
+         The number of samples to offset the extracted patch from peak.
+
+        *samp_rate*:
+         The sampling rate of the recorded data.
+
+    **Returns**:
+        A numpy recarray with fields:
+
+        *spikes*: 
+         Arrays that are 4*patch_size long, containing waveforms
+         from each data channel extracted at each time stamp from times.
+
+        *times*:
+         The same array as the times argument.
+        
     """
 
     extracted = [ extract(chan, times, 
@@ -154,70 +218,63 @@ def form_tetrode(data, times, patch_size=30, offset=0, samp_rate=30000):
                           offset=offset) 
                   for chan in data]
     waveforms = np.concatenate([ wv for wv, time in extracted ], axis=1)
+
+    # Remove any spikes that are too large
+
+    good_spikes = np.where((waveforms<300).all(axis=1) * 
+                           (waveforms>-300).all(axis=1))[0]
+
     records = [('spikes', 'f8', patch_size*4), ('times', 'f8', 1)]
-    tetrodes = np.zeros(len(times), dtype=records)
-    tetrodes['spikes'] = waveforms
-    tetrodes['times'] = times/float(samp_rate)
+    tetrodes = np.zeros(len(good_spikes), dtype=records)
+    tetrodes['spikes'] = waveforms[good_spikes]
+    tetrodes['times'] = times[good_spikes]/float(samp_rate)
 
     return tetrodes
 
-def trim_data(*args, **kwargs):
-    """ Returns a smaller number of data points, reduced by the value of trim.
-        Useful for plotting fewer points for speed purposes.
-        
-        Arguments
-        ---------
-        Any number of position arguments.  They should all be numpy arrays of
-        the same dimension.
-        
-        Keyword Arguments
-        -----------------
-        trim : float between 0 and 1, inclusive. 
-            This is the factor the data points are trimmed by.
-        
+def get_threshold(data, multiplier=4):
+    """ Calculate the spike crossing threshold from the data.
+
+    Uses the median of the given data to calculate the standard deviation of 
+    the noise.  This method is less sensitive to spikes in the data.  
+    
+    **Arguments**:
+        *data*:
+         The data numpy array.
+
+    **Keywords**:
+        *multiplier*:
+         The threshold multiplier, approximately the number of significant
+         deviations of the noise.
+
+    **Returns**:
+        A float value for the threshold.
+
     """
+    return multiplier*np.median(np.abs(data)/0.6745)
+
+def filter(data, low=300, high=6000, rate=30000):
+    """ Filter the data with a 3-pole Butterworth bandpass filter.
+
+        This is used to remove LFP from the signal.  Also reduces noise due
+        to the decreased bandwidth.  You will typically filter the raw data,
+        then extract spikes.
     
-    if 'trim' in kwargs:
-        trim = kwargs['trim']
-    else:
-        trim = 1
-    
-    trimmed=[]
-    if 0 <= trim <= 1:
-        N = len(args[0])
-        chosen = np.random.choice(N, size=int(trim*N), replace=False)
-        for i, arg in enumerate(args[:]):
-            trimmed.append(arg[chosen])
+        **Arguments**:
+            *data*: The data you want filtered.
         
-        if len(trimmed)>1:
-            return trimmed
-        else:
-            return trimmed[0]
+        **Keywords**:
+            *low*:
+             Low frequency rolloff.
             
-    else:
-        raise ValueError("trim must be between 0 and 1.")
+            *high*:
+             High frequency rolloff.
+            
+            *rate*:
+             The sample rate.
+        
+        **Returns**:
+            A numpy array the same shape as data, but filtered.
 
-def medthresh(data, threshold=4):
-    """ A function that calculates the spike crossing threshold 
-        based off the median value of the data.
-    
-    Arguments
-    ---------
-    data : your data
-    threshold : the threshold multiplier
-    """
-    return threshold*np.median(np.abs(data)/0.6745)
-
-def bfilter(data, low=300, high=6000, rate=30000):
-    """ Filters the data with a 3-pole Butterworth bandpass filter.
-    
-        Arguments
-        ---------
-        data : numpy array : data you want filtered
-        low : int, float : low frequency rolloff
-        high : int, float : high frequency rolloff
-        rate : int, float : sample rate
-    
     """
     import scipy.signal as sig
     
@@ -239,14 +296,30 @@ def bfilter(data, low=300, high=6000, rate=30000):
     return sig.filtfilt(b, a, data)
 
 def censor(data, width=30):
-    """ This is used to insert a censored period in found threshold crossings.
-        For instance, when you find a crossing in the signal, you don't
-        want the next 0.5-1 ms, you just want the first crossing.
+    """ Censor values after leading edges in time.
+
+    This is used to insert a censored period in threshold crossings.
+    For instance, when you find a crossing in the signal, you don't
+    want the next 0.5-1 ms, you just want the first crossing.
+    
+    **Arguments**:
+        *data*:
+         A numpy array, the data you want censored.
         
-        Arguments
-        ---------
-        data : numpy array : data you want censored
-        width : int : number of samples censored after a first crossing
+    **Keyword**:
+        *width*:
+         The number of samples censored after a leading edge.
+
+    **Returns**:
+        A numpy array of leading edge timestamps.
+
+    **Example**:
+    
+    >>> times = [110, 111, 112, 120, 270, 271, 280]
+    >>> censored = censor(times)
+    >>> print(censored)
+    array([110, 270])
+
     """
     try:
         edges = [data[0]]
@@ -259,18 +332,31 @@ def censor(data, width=30):
     return np.array(edges)
     
 def crossings(data, threshold, polarity='pos'):
-    """ Finds threshold crossings in data 
+    """ Find threshold crossings in data.
     
-        Arguments:
-        data : numpy array
-        threshold : int, float : crossing threshold, always positive
-        polarity : 'pos', 'neg', 'both' :
-            'pos' : detects crossings for +threshold
-            'neg' : detects crossings for -threshold 
-            'both' : both + and - threshold
+    **Arguments**:
+        *data*:
+         A numpy array of the data.
+        
+        *threshold*:
+         The voltage threshold, always positive.
+    
+    **Keywords**:
+        *polarity* ('pos', 'neg', 'both'): 
+            
+            * 'pos': detects crossings for +threshold
+            * 'neg': detects crossings for -threshold 
+            * 'both': both + and - threshold
+
+    **Returns**:
+        An array of sample timestamps for each threshold crossing.
+
+    This gives all samples that cross the threshold.  If you only want the 
+    first crossings, pass the results to :func:`censor`.
+
     """
     
-    if type(data) != list:
+    if ~isinstance(data, list):
         data = [data]
     peaks = []
     for chan in data:
@@ -286,33 +372,49 @@ def crossings(data, threshold, polarity='pos'):
 def extract(data, peaks, patch_size=30, offset=0, polarity='neg'):
     """ Extract peaks from data based on sample values in peaks. 
     
-        Arguments
-        ---------
-        patch_size : int : 
-            number of samples to extract centered on peak + offset
-        offset : int : 
-            number of samples to offset the extracted patch from peak
-        polarity : 'pos' or 'neg' :
-            Set to 'pos' if your spikes have positive polarity
+        **Arguments**:
+            *data*: 
+             The data you want to extract patches from.
+            
+            *peaks*: 
+             The sample timestamps where the patches are taken from.
+
+        **Keywords**:
+            *patch_size*: 
+             The number of samples to extract centered on peak + offset.
+            
+            *offset*: 
+             The number of samples to offset the extracted patch from peak.
+            
+            *polarity*: 
+             ('pos' or 'neg') Set to 'pos' if your spikes have positive polarity
         
-        Returns
-        -------
-        spikes : numpy array : N x patch_size array of extracted spikes
-        peaks : numpy array : sample values for the peak of each spike
+        **Returns**:
+            *spikes*:
+             A len(peaks) x patch_size array of extracted spikes. 
+            
+            *peaks*:
+             An array of sample values for the peak of each spike.
+
     """
     
     spikes, peak_samples = [], []
     size = patch_size/2
     for peak in peaks:
-        patch = data[peak-size:peak+size]
+        start = peak - size if (peak-size) > 0 else 0 
+        end = peak+size
+        patch = data[start:end]
         if polarity == 'pos':
-            peak_sample = patch.argmax()
+                peak_sample = patch.argmax()
         elif polarity == 'neg':
             peak_sample = patch.argmin()
-        centered = peak-size+peak_sample+offset
-        peak_sample = peak-size+peak_sample
+        centered = start+peak_sample+offset
+        peak_sample = start+peak_sample
         final_patch = data[centered-size:centered+size]
         peak_samples.append(peak_sample)
+        # Padding the final patch to patch_size
+        final_patch = np.pad(final_patch, (0, patch_size-len(final_patch)), 
+                             mode='constant', constant_values=0)
         spikes.append(final_patch)
         
     return np.array(spikes), np.array(peak_samples)

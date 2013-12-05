@@ -1,0 +1,489 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Process &mdash; spikesort 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="spikesort 1.0 documentation" href="index.html" />
+    <link rel="next" title="Cluster" href="cluster.html" />
+    <link rel="prev" title="Documentation for spikesort" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="cluster.html" title="Cluster"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Documentation for spikesort"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">spikesort 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Process</a><ul>
+<li><a class="reference internal" href="#typical-usage">Typical usage</a></li>
+<li><a class="reference internal" href="#module-process">Functions</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Documentation for spikesort</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cluster.html"
+                        title="next chapter">Cluster</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/process.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="process">
+<h1>Process<a class="headerlink" href="#process" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This code has been written to load and analyze data from ns5 binary files.  However, the functions as a whole accept data as numpy arrays.  So, as long as you can get your data into numpy arrays, it doesn&#8217;t matter what the initial data format is.</p>
+</div>
+<div class="section" id="typical-usage">
+<h2>Typical usage<a class="headerlink" href="#typical-usage" title="Permalink to this headline">¶</a></h2>
+<p>You will probably want to do this in parallel because you end up doing things like filtering four data channels at once.  Each channel voltage signal is a bunch of data, so this ends up taking a lot of time, but since the filtering is done with scipy, there really isn&#8217;t anyway to speed this up. It&#8217;s slow due only to the amount of data.  The solution is to do this stuff in parallel.</p>
+<p>There are multiple options here.  I prefer doing this in an IPython notebook to take advantage of the easy parallel processing.  Typically, you&#8217;ll start up four engines (hopefully your CPU has four or more cores), then:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">spikesort</span> <span class="kn">import</span> <span class="n">process</span>
+<span class="kn">from</span> <span class="nn">IPython.parallel</span> <span class="kn">import</span> <span class="n">Client</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Client</span><span class="p">()</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="mi">20</span><span class="p">])</span>
+<span class="n">all_channels</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">datafile</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="mi">33</span><span class="p">))</span>
+<span class="n">car</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">common_ref</span><span class="p">(</span><span class="n">all_channels</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="n">data_minus_car</span> <span class="o">=</span> <span class="p">(</span> <span class="n">d</span> <span class="o">-</span> <span class="n">car</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span> <span class="p">)</span>
+<span class="n">filtered</span> <span class="o">=</span> <span class="n">c</span><span class="p">[:]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">filter</span><span class="p">,</span> <span class="n">data_minus_car</span><span class="p">)</span>
+<span class="n">extracted</span> <span class="o">=</span> <span class="n">c</span><span class="p">[:]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">detect_spikes</span><span class="p">,</span> <span class="n">filtered</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+<span class="n">spikes</span> <span class="o">=</span> <span class="n">extracted</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Alternatively, you can use process.map which uses Python&#8217;s multiprocessing module.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">data</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="mi">20</span><span class="p">])</span>
+<span class="n">all_channels</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">datafile</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="mi">33</span><span class="p">))</span>
+<span class="n">car</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">common_ref</span><span class="p">(</span><span class="n">all_channels</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="n">data_minus_car</span> <span class="o">=</span> <span class="p">(</span> <span class="n">each</span> <span class="o">-</span> <span class="n">car</span> <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">data</span> <span class="p">)</span>
+<span class="n">filtered</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">filter</span><span class="p">,</span> <span class="n">data_minus_car</span><span class="p">)</span>
+<span class="n">spikes</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">detect_spikes</span><span class="p">,</span> <span class="n">filtered</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then use the extracted spikes to get the tetrode waveforms.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">timestamps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span> <span class="n">s</span><span class="p">[</span><span class="s">&#39;times&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">spikes</span> <span class="p">])</span>
+<span class="n">times</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">censor</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)</span>
+<span class="n">tetrodes</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">form_tetrode</span><span class="p">(</span><span class="n">filtered</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-process">
+<span id="functions"></span><h2>Functions<a class="headerlink" href="#module-process" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-process"></span><dl class="function">
+<dt id="process.censor">
+<tt class="descclassname">process.</tt><tt class="descname">censor</tt><big>(</big><em>data</em>, <em>width=30</em><big>)</big><a class="headerlink" href="#process.censor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Censor values after leading edges in time.</p>
+<p>This is used to insert a censored period in threshold crossings.
+For instance, when you find a crossing in the signal, you don&#8217;t
+want the next 0.5-1 ms, you just want the first crossing.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>A numpy array, the data you want censored.</dd>
+</dl>
+</dd>
+<dt><strong>Keyword</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>width</em>:</dt>
+<dd>The number of samples censored after a leading edge.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>A numpy array of leading edge timestamps.</dd>
+</dl>
+<p><strong>Example</strong>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">times</span> <span class="o">=</span> <span class="p">[</span><span class="mi">110</span><span class="p">,</span> <span class="mi">111</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">270</span><span class="p">,</span> <span class="mi">271</span><span class="p">,</span> <span class="mi">280</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">censored</span> <span class="o">=</span> <span class="n">censor</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">censored</span><span class="p">)</span>
+<span class="go">array([110, 270])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.common_ref">
+<tt class="descclassname">process.</tt><tt class="descname">common_ref</tt><big>(</big><em>data</em>, <em>n=None</em><big>)</big><a class="headerlink" href="#process.common_ref" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the common average reference from the data.</p>
+<p>Calculate the common average reference from the data to subtract from
+each channel of the raw data.  Doing this removes noise and artifacts
+from the raw data so that spike detection performance is improved. If 
+the length of data can&#8217;t be found with len(), set n to the length 
+of data.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>An iterator containing equal length arrays.</dd>
+</dl>
+</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>n</em>:</dt>
+<dd>The number of arrays in data.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>A numpy array of the average of the arrays in data.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.crossings">
+<tt class="descclassname">process.</tt><tt class="descname">crossings</tt><big>(</big><em>data</em>, <em>threshold</em>, <em>polarity='pos'</em><big>)</big><a class="headerlink" href="#process.crossings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find threshold crossings in data.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>A numpy array of the data.</dd>
+<dt><em>threshold</em>:</dt>
+<dd>The voltage threshold, always positive.</dd>
+</dl>
+</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><p class="first"><em>polarity</em> (&#8216;pos&#8217;, &#8216;neg&#8217;, &#8216;both&#8217;):</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li>&#8216;pos&#8217;: detects crossings for +threshold</li>
+<li>&#8216;neg&#8217;: detects crossings for -threshold</li>
+<li>&#8216;both&#8217;: both + and - threshold</li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>An array of sample timestamps for each threshold crossing.</dd>
+</dl>
+<p>This gives all samples that cross the threshold.  If you only want the 
+first crossings, pass the results to <a class="reference internal" href="#process.censor" title="process.censor"><tt class="xref py py-func docutils literal"><span class="pre">censor()</span></tt></a>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.detect_spikes">
+<tt class="descclassname">process.</tt><tt class="descname">detect_spikes</tt><big>(</big><em>data</em>, <em>threshold=4</em>, <em>patch_size=30</em><big>)</big><a class="headerlink" href="#process.detect_spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detect spikes in data.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>The data to extract spikes from, should be a numpy array.</dd>
+</dl>
+</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>threshold</em>:</dt>
+<dd>The threshold for spike detection, approximately equal the number of
+standard deviations of the noise.</dd>
+<dt><em>patch_size</em>:</dt>
+<dd>The number of samples for an extracted spike patch.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd><p class="first">A numpy recarray with the following fields:</p>
+<dl class="last docutils">
+<dt><em>spikes</em>:</dt>
+<dd>An N x patch_size array of spike waveform patches, where N is the 
+number of spikes detected.</dd>
+<dt><em>times</em>:</dt>
+<dd>An array of time samples for the peak of each detected spike.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.extract">
+<tt class="descclassname">process.</tt><tt class="descname">extract</tt><big>(</big><em>data</em>, <em>peaks</em>, <em>patch_size=30</em>, <em>offset=0</em>, <em>polarity='neg'</em><big>)</big><a class="headerlink" href="#process.extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract peaks from data based on sample values in peaks.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>: </dt>
+<dd>The data you want to extract patches from.</dd>
+<dt><em>peaks</em>: </dt>
+<dd>The sample timestamps where the patches are taken from.</dd>
+</dl>
+</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>patch_size</em>: </dt>
+<dd>The number of samples to extract centered on peak + offset.</dd>
+<dt><em>offset</em>: </dt>
+<dd>The number of samples to offset the extracted patch from peak.</dd>
+<dt><em>polarity</em>: </dt>
+<dd>(&#8216;pos&#8217; or &#8216;neg&#8217;) Set to &#8216;pos&#8217; if your spikes have positive polarity</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>spikes</em>:</dt>
+<dd>A len(peaks) x patch_size array of extracted spikes.</dd>
+<dt><em>peaks</em>:</dt>
+<dd>An array of sample values for the peak of each spike.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.filter">
+<tt class="descclassname">process.</tt><tt class="descname">filter</tt><big>(</big><em>data</em>, <em>low=300</em>, <em>high=6000</em>, <em>rate=30000</em><big>)</big><a class="headerlink" href="#process.filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter the data with a 3-pole Butterworth bandpass filter.</p>
+<p>This is used to remove LFP from the signal.  Also reduces noise due
+to the decreased bandwidth.  You will typically filter the raw data,
+then extract spikes.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><em>data</em>: The data you want filtered.</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>low</em>:</dt>
+<dd>Low frequency rolloff.</dd>
+<dt><em>high</em>:</dt>
+<dd>High frequency rolloff.</dd>
+<dt><em>rate</em>:</dt>
+<dd>The sample rate.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>A numpy array the same shape as data, but filtered.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.form_tetrode">
+<tt class="descclassname">process.</tt><tt class="descname">form_tetrode</tt><big>(</big><em>data</em>, <em>times</em>, <em>patch_size=30</em>, <em>offset=0</em>, <em>samp_rate=30000</em><big>)</big><a class="headerlink" href="#process.form_tetrode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build tetrode waveforms from voltage data and detected spike times.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>The voltage signals of each channel in a the tetrode, used for 
+extracting spikes.</dd>
+<dt><em>times</em>:</dt>
+<dd>A numpy array containing the sample value for each spike.</dd>
+</dl>
+</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>patch_size</em>: </dt>
+<dd>The number of samples to extract centered on peak + offset.</dd>
+<dt><em>offset</em>: </dt>
+<dd>The number of samples to offset the extracted patch from peak.</dd>
+<dt><em>samp_rate</em>:</dt>
+<dd>The sampling rate of the recorded data.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd><p class="first">A numpy recarray with fields:</p>
+<dl class="last docutils">
+<dt><em>spikes</em>: </dt>
+<dd>Arrays that are 4*patch_size long, containing waveforms
+from each data channel extracted at each time stamp from times.</dd>
+<dt><em>times</em>:</dt>
+<dd>The same array as the times argument.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.get_threshold">
+<tt class="descclassname">process.</tt><tt class="descname">get_threshold</tt><big>(</big><em>data</em>, <em>multiplier=4</em><big>)</big><a class="headerlink" href="#process.get_threshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the spike crossing threshold from the data.</p>
+<p>Uses the median of the given data to calculate the standard deviation of 
+the noise.  This method is less sensitive to spikes in the data.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>The data numpy array.</dd>
+</dl>
+</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>multiplier</em>:</dt>
+<dd>The threshold multiplier, approximately the number of significant
+deviations of the noise.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>A float value for the threshold.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.load_ns5">
+<tt class="descclassname">process.</tt><tt class="descname">load_ns5</tt><big>(</big><em>filename</em>, <em>channels=None</em><big>)</big><a class="headerlink" href="#process.load_ns5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load data from an ns5 file.</p>
+<p>This returns a generator, so you only get one channel at a time, but 
+you don&#8217;t have to load in all the channels at once, saving memory 
+since it is a LOT of data.  This only works with ns5 files currently.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>filename</em>:</dt>
+<dd>A path to the data file.</dd>
+</dl>
+</dd>
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>channels</em>:</dt>
+<dd>The channels to load.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>A generator of numpy arrays containing the raw voltage signal from
+the given channels.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.load_spikes">
+<tt class="descclassname">process.</tt><tt class="descname">load_spikes</tt><big>(</big><em>filename</em>, <em>ncols=120</em><big>)</big><a class="headerlink" href="#process.load_spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads recarray saved with save_spikes.  The keyword ncols should be
+set to the length of the spike waveform.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.map">
+<tt class="descclassname">process.</tt><tt class="descname">map</tt><big>(</big><em>func</em>, <em>data</em>, <em>processes=4</em><big>)</big><a class="headerlink" href="#process.map" title="Permalink to this definition">¶</a></dt>
+<dd><p>This maps the data to func in parallel using multiple processes. 
+This works fine in the IPython terminal, but not in IPython notebook.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first docutils">
+<dt><em>func</em>:</dt>
+<dd>Function to map the data with.</dd>
+</dl>
+<p class="last"><em>data</em>: Data sent to func.</p>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>Returns whatever func returns.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.save_spikes">
+<tt class="descclassname">process.</tt><tt class="descname">save_spikes</tt><big>(</big><em>filename</em>, <em>spikes</em><big>)</big><a class="headerlink" href="#process.save_spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves spikes record array to file.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="process.tetrode_chans">
+<tt class="descclassname">process.</tt><tt class="descname">tetrode_chans</tt><big>(</big><em>tetrode_num</em><big>)</big><a class="headerlink" href="#process.tetrode_chans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the channel numbers for the requested tetrode.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">These channels are only valid for the H04 and H05 adapters used in our
+lab.</p>
+</div>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>tetrode_num</em>:</dt>
+<dd>Tetrode number.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>A list of channels belonging to the chosen tetrode.</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="cluster.html" title="Cluster"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Documentation for spikesort"
+             >previous</a> |</li>
+        <li><a href="index.html">spikesort 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Mat Leonard.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

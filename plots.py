@@ -1,11 +1,13 @@
-""" This module is for plotting """
+"""
+.. module:: plots
+    :synopsis: A module for plotting various data of sorted units.
 
+.. moduleauthor:: Mat Leonard <leonard.mat@gmail.com>
+"""
 from functools import wraps
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-from process import trim_data
 
 def color_array(clusters, color_dict):
     """ Returns a 1D array with the color for each data point """
@@ -16,11 +18,46 @@ def color_array(clusters, color_dict):
     
     return col_array
     
-def get_colors(K, colormap = plt.cm.Paired):
-        ''' Method for setting the colors used when plotting clusters '''
-        colors = colormap(np.arange(0.0,1.0,1.0/K))
-        color_dict = {cl:color for cl, color in zip(range(K), colors)}
-        return color_dict
+def get_colors(K, colormap=plt.cm.Paired):
+    """ Method for setting the colors used when plotting clusters. """
+    colors = colormap(np.arange(0.0,1.0,1.0/K))
+    color_dict = { cl:color for cl, color in zip(range(K), colors) }
+    return color_dict
+
+def trim_data(*args, **kwargs):
+    """ Returns a smaller number of data points, reduced by the value of trim.
+        Useful for plotting fewer points for speed purposes.
+        
+        **Arguments**
+        
+        Any number of position arguments.  They should all be numpy arrays of
+        the same dimension.
+        
+        **Keywords**
+        trim : float between 0 and 1, inclusive. 
+            This is the factor the data points are trimmed by.
+        
+    """
+    
+    if 'trim' in kwargs:
+        trim = kwargs['trim']
+    else:
+        trim = 1
+    
+    trimmed=[]
+    if 0 <= trim <= 1:
+        N = len(args[0])
+        chosen = np.random.choice(N, size=int(trim*N), replace=False)
+        for i, arg in enumerate(args[:]):
+            trimmed.append(arg[chosen])
+        
+        if len(trimmed)>1:
+            return trimmed
+        else:
+            return trimmed[0]
+            
+    else:
+        raise ValueError("trim must be between 0 and 1.")
 
 def passed_or_new_ax(func):
     """ This is a decorator for the plots in this module.  Most plots can be
@@ -44,13 +81,17 @@ def scatter(x, y, ax=None, trim=1, colors='k'):
         value of trim, so if you are plotting a bunch of points, it won't
         show them all.  Set trim=0.5 to plot half the points, for example.
         
-        Arguments
-        ---------
-        x, y : array-like, must be the same length, data values to plot
-        ax : matplotlib axes
-        trim : float between 0 and 1, inclusive, trims data points
-        colors : colors of the data points, can be an array of the same
-            length as x and y
+        **Arguments**
+        
+            *x, y*: 
+             array-like, must be the same length, data values to plot
+            *ax*:
+             matplotlib axes
+            *trim*:
+             float between 0 and 1, inclusive, trims data points
+            *colors*:
+             colors of the data points, can be an array of the same length
+             as x and y
     """
     
     if len(colors)==1:
@@ -61,17 +102,20 @@ def scatter(x, y, ax=None, trim=1, colors='k'):
     return ax
 
 @passed_or_new_ax
-def spikes(data, ax=None, color='r', limit=50):
+def spikes(data, ax=None, color='r', limit=50, patch_size=30):
     """ Plots the spike waveforms assuming the data is from a tetrode.
         
-        Arguments
-        ---------
-        data : array of spike waveforms
-        ax : matplotlib axes
-        color : color of the waveforms
-        limit : number of waveforms to plot
+        **Arguments**
+            *data*:
+             Array of spike waveforms
+            *ax*: 
+             Matplotlib axis
+            *color*:
+             Color of the waveforms
+            *limit*: 
+             Number of waveforms to plot
     """
-    patch = 30
+    patch = patch_size
     gap = 10
     spikes = limit_data(data, limit).T
     spike_mean = spikes.mean(axis=1)
@@ -86,7 +130,7 @@ def spikes(data, ax=None, color='r', limit=50):
     for x, p, m in zip(xs, patches, means):
         ax.plot(x, p, color=color, alpha=0.3)
         ax.plot(x, m, color='k')
-        ax.set_xlim((0,150))
+        ax.set_xlim((0,4*patch_size+30))
     
     return ax
 
@@ -111,26 +155,56 @@ def scatter3D(x, y, z, ax=None, trim=1, colors='k'):
 
 @passed_or_new_ax
 def autocorr(times, ax=None, color='k', bin_width=0.0015, limit=0.03):
+    """ Plots the autocorrelation of times. """
+    
     counts, bins = correlogram(times, bin_width = bin_width, 
                                 limit = limit, auto=True)
     ax.bar(bins[:-1]*1000, counts, width = bin_width*1000, 
            color = color, edgecolor = 'none')
     ax.set_xlim((-limit-bin_width)*1000, (limit+bin_width)*1000)
+    
     return ax
 
 @passed_or_new_ax
 def crosscorr(t1, t2, ax=None, color='k', bin_width=0.0015, limit=0.03):
+    """ Plots the cross-correlation of t1 and t2. """
+    
     counts, bins = correlogram(t1, t2, bin_width = bin_width, 
                                 limit = limit, auto=False)
     ax.bar(bins[:-1]*1000, counts, width = bin_width*1000, 
            color = color, edgecolor = 'none')
     ax.set_xlim((-limit-bin_width)*1000, (limit+bin_width)*1000)
+    
+    return ax
+
+@passed_or_new_ax
+def timestamps(times, ax=None, color='k', xlims=(0,4000)):
+    """ Plot time stamps, randomly scattered along the y-axis.  """
+    ax.scatter(times, np.random.rand(*times.shape), marker='|', color=color)
+    ax.set_yticklabels('')
+    ax.set_xlim(*xlims)
+    ax.set_xlabel('Time (s)')
+    return ax
+
+@passed_or_new_ax
+def feature_trace(features, times, ax=None, color='k', marker='.', xlims=(0,4000)):
+    """ Plot feature values over time. """
+    ax.scatter(times, features, marker=marker, edgecolor='none', 
+               facecolor=color, alpha=0.5)
+    ax.set_xlim(*xlims)
+    ax.set_xlabel('Time (s)')
     return ax
 
 def generate_axes(N_plots, ncols, **kwargs):
-    
+    """ Generate multiple axes on a figure, given the number of desired 
+        plots and columns.
+    """
     nrows = (N_plots-1)/ncols+1
     kwargs.update({'nrows':nrows, 'ncols':ncols})
+    figsize = kwargs.get('figsize', None)
+    if figsize is None:
+        figsize = (10, 1+2*nrows)
+        kwargs.update({'figsize':figsize})
     fig, axes = plt.subplots(**kwargs)
     axes = axes.flatten()
     
@@ -168,8 +242,7 @@ def correlogram(t1, t2=None, bin_width=.001, limit=.02, auto=False):
     from all of `t2` and bins the results with numpy.histogram, though
     several tweaks were made for efficiency.
     
-    Arguments
-    ---------
+    **Arguments**
         t1 : first spiketrain, raw spike times in seconds.
         t2 : second spiketrain, raw spike times in seconds.
         bin_width : width of each bar in histogram in sec
@@ -177,8 +250,7 @@ def correlogram(t1, t2=None, bin_width=.001, limit=.02, auto=False):
         auto : if True, then returns autocorrelogram of `t1` and in
             this case `t2` can be None.
     
-    Returns
-    -------
+    **Returns**
         (count, bins) : a tuple containing the bin edges (in seconds) and the
         count of spikes in each bin.
 

@@ -1,0 +1,275 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Plots &mdash; spikesort 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="spikesort 1.0 documentation" href="index.html" />
+    <link rel="next" title="Catalog" href="catalog.html" />
+    <link rel="prev" title="Cluster" href="cluster.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="catalog.html" title="Catalog"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="cluster.html" title="Cluster"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">spikesort 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cluster.html"
+                        title="previous chapter">Cluster</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="catalog.html"
+                        title="next chapter">Catalog</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/plots.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="plots">
+<h1>Plots<a class="headerlink" href="#plots" title="Permalink to this headline">¶</a></h1>
+<p>This module contains code for making plots.  This code is used mainly for the plots in <a class="reference internal" href="cluster.html#cluster.Viewer" title="cluster.Viewer"><tt class="xref py py-class docutils literal"><span class="pre">cluster.Viewer</span></tt></a>.  So, it isn&#8217;t really intended to be used, but feel free to of course.</p>
+<span class="target" id="module-plots"></span><span class="target" id="module-plots"></span><dl class="function">
+<dt id="plots.autocorr">
+<tt class="descclassname">plots.</tt><tt class="descname">autocorr</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.autocorr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the autocorrelation of times.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.color_array">
+<tt class="descclassname">plots.</tt><tt class="descname">color_array</tt><big>(</big><em>clusters</em>, <em>color_dict</em><big>)</big><a class="headerlink" href="#plots.color_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a 1D array with the color for each data point</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.correlogram">
+<tt class="descclassname">plots.</tt><tt class="descname">correlogram</tt><big>(</big><em>t1</em>, <em>t2=None</em>, <em>bin_width=0.001</em>, <em>limit=0.02</em>, <em>auto=False</em><big>)</big><a class="headerlink" href="#plots.correlogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return crosscorrelogram of two spike trains.</p>
+<p>Essentially, this algorithm subtracts each spike time in <cite>t1</cite> 
+from all of <cite>t2</cite> and bins the results with numpy.histogram, though
+several tweaks were made for efficiency.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong></dt>
+<dd><p class="first">t1 : first spiketrain, raw spike times in seconds.
+t2 : second spiketrain, raw spike times in seconds.
+bin_width : width of each bar in histogram in sec
+limit : positive and negative extent of histogram, in seconds
+auto : if True, then returns autocorrelogram of <cite>t1</cite> and in</p>
+<blockquote class="last">
+<div>this case <cite>t2</cite> can be None.</div></blockquote>
+</dd>
+<dt><strong>Returns</strong></dt>
+<dd><p class="first">(count, bins) : a tuple containing the bin edges (in seconds) and the
+count of spikes in each bin.</p>
+<p class="last"><cite>bins</cite> is relative to <cite>t1</cite>. That is, if <cite>t1</cite> leads <cite>t2</cite>, then
+<cite>count</cite> will peak in a positive time bin.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.crosscorr">
+<tt class="descclassname">plots.</tt><tt class="descname">crosscorr</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.crosscorr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the cross-correlation of t1 and t2.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.feature_trace">
+<tt class="descclassname">plots.</tt><tt class="descname">feature_trace</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.feature_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot feature values over time.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.generate_axes">
+<tt class="descclassname">plots.</tt><tt class="descname">generate_axes</tt><big>(</big><em>N_plots</em>, <em>ncols</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.generate_axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate multiple axes on a figure, given the number of desired 
+plots and columns.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.generate_crosscorr_axes">
+<tt class="descclassname">plots.</tt><tt class="descname">generate_crosscorr_axes</tt><big>(</big><em>n_rows</em>, <em>n_cols</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.generate_crosscorr_axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dict of indices and axes for the figure used in 
+cross-correlations.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.get_colors">
+<tt class="descclassname">plots.</tt><tt class="descname">get_colors</tt><big>(</big><em>K</em>, <em>colormap=&lt;matplotlib.colors.LinearSegmentedColormap object at 0x103ec5a10&gt;</em><big>)</big><a class="headerlink" href="#plots.get_colors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method for setting the colors used when plotting clusters.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.limit_data">
+<tt class="descclassname">plots.</tt><tt class="descname">limit_data</tt><big>(</big><em>data</em>, <em>max_limit</em><big>)</big><a class="headerlink" href="#plots.limit_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data points limited in number by max_limit</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.passed_or_new_ax">
+<tt class="descclassname">plots.</tt><tt class="descname">passed_or_new_ax</tt><big>(</big><em>func</em><big>)</big><a class="headerlink" href="#plots.passed_or_new_ax" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a decorator for the plots in this module.  Most plots can be
+passed an existing axis to plot on.  If it isn&#8217;t passed an axis, then
+a new figure and new axis should be generated and passed to the plot.
+This decorator ensures this happens.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.scatter">
+<tt class="descclassname">plots.</tt><tt class="descname">scatter</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a scatter plot.  The number of points is reduced by the
+value of trim, so if you are plotting a bunch of points, it won&#8217;t
+show them all.  Set trim=0.5 to plot half the points, for example.</p>
+<p><strong>Arguments</strong></p>
+<blockquote>
+<div><dl class="docutils">
+<dt><em>x, y</em>: </dt>
+<dd>array-like, must be the same length, data values to plot</dd>
+<dt><em>ax</em>:</dt>
+<dd>matplotlib axes</dd>
+<dt><em>trim</em>:</dt>
+<dd>float between 0 and 1, inclusive, trims data points</dd>
+<dt><em>colors</em>:</dt>
+<dd>colors of the data points, can be an array of the same length
+as x and y</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.scatter3D">
+<tt class="descclassname">plots.</tt><tt class="descname">scatter3D</tt><big>(</big><em>x</em>, <em>y</em>, <em>z</em>, <em>ax=None</em>, <em>trim=1</em>, <em>colors='k'</em><big>)</big><a class="headerlink" href="#plots.scatter3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a scatter plot in 3D.  The number of points is reduced by 
+the value of trim, so if you are plotting a bunch of points, it won&#8217;t
+show them all.  Set trim=0.5 to plot half the points, for example.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.spikes">
+<tt class="descclassname">plots.</tt><tt class="descname">spikes</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the spike waveforms assuming the data is from a tetrode.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong></dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>Array of spike waveforms</dd>
+<dt><em>ax</em>: </dt>
+<dd>Matplotlib axis</dd>
+<dt><em>color</em>:</dt>
+<dd>Color of the waveforms</dd>
+<dt><em>limit</em>: </dt>
+<dd>Number of waveforms to plot</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.timestamps">
+<tt class="descclassname">plots.</tt><tt class="descname">timestamps</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.timestamps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot time stamps, randomly scattered along the y-axis.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plots.trim_data">
+<tt class="descclassname">plots.</tt><tt class="descname">trim_data</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#plots.trim_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a smaller number of data points, reduced by the value of trim.
+Useful for plotting fewer points for speed purposes.</p>
+<p><strong>Arguments</strong></p>
+<p>Any number of position arguments.  They should all be numpy arrays of
+the same dimension.</p>
+<p><strong>Keywords</strong>
+trim : float between 0 and 1, inclusive.</p>
+<blockquote>
+<div>This is the factor the data points are trimmed by.</div></blockquote>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="catalog.html" title="Catalog"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="cluster.html" title="Cluster"
+             >previous</a> |</li>
+        <li><a href="index.html">spikesort 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Mat Leonard.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

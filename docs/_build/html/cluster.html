@@ -1,0 +1,452 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Cluster &mdash; spikesort 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="spikesort 1.0 documentation" href="index.html" />
+    <link rel="next" title="Plots" href="plots.html" />
+    <link rel="prev" title="Process" href="process.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="plots.html" title="Plots"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="process.html" title="Process"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">spikesort 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Cluster</a><ul>
+<li><a class="reference internal" href="#module-cluster">Functions</a></li>
+<li><a class="reference internal" href="#module-cluster">Classes</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="process.html"
+                        title="previous chapter">Process</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="plots.html"
+                        title="next chapter">Plots</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/cluster.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="cluster">
+<h1>Cluster<a class="headerlink" href="#cluster" title="Permalink to this headline">¶</a></h1>
+<p>This module is used to cluster tetrode waveforms found using the process module.  The main class for this is Sorter.  Sorter takes the tetrode waveforms, finds the most important features using <a class="reference external" href="http://scikit-learn.org/stable/modules/decomposition.html#decompositions">PCA (or ICA)</a>, then sorts the data into clusters in feature space using a <a class="reference external" href="http://scikit-learn.org/stable/modules/mixture.html">Gaussian Mixture Model</a>.  After sorting, the data is stored in a Clusters object, which can be viewed using a Viewer or with a Sorter, which inherits from Sorter.</p>
+<p><strong>Examples</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">tetrodes</span> <span class="o">=</span> <span class="n">spikesort</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">form_tetrodes</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
+<span class="n">sorter</span> <span class="o">=</span> <span class="n">spikesort</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">Sorter</span><span class="p">(</span><span class="n">K</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">assign_prob</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">sorter</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">tetrodes</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A good way to pick the best number of clusters is by finding the smallest BIC between many models.  Using IPython&#8217;s parallel processing system:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">min_K</span><span class="p">,</span> <span class="n">max_K</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">40</span>
+<span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">K</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">spikesort</span> <span class="kn">as</span> <span class="nn">ss</span>
+    <span class="n">sorter</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">Sorter</span><span class="p">(</span><span class="n">K</span><span class="o">=</span><span class="n">K</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">cov_type</span><span class="o">=</span><span class="s">&#39;full&#39;</span><span class="p">,</span> <span class="n">assign_prob</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">sorter</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sorter</span>
+
+<span class="n">Ks</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">min_K</span><span class="p">,</span> <span class="n">max_K</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">models</span> <span class="o">=</span> <span class="n">c</span><span class="p">[:]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="n">tetrodes</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">Ks</span><span class="p">),</span> <span class="n">Ks</span><span class="p">)</span>
+<span class="n">bics</span> <span class="o">=</span> <span class="p">[</span> <span class="n">model</span><span class="o">.</span><span class="n">bic</span><span class="p">()</span> <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">models</span> <span class="p">]</span>
+<span class="n">sorter</span> <span class="o">=</span> <span class="n">models</span><span class="p">[</span><span class="n">argmin</span><span class="p">(</span><span class="n">bics</span><span class="p">)]</span>
+</pre></div>
+</div>
+<div class="section" id="module-cluster">
+<span id="functions"></span><h2>Functions<a class="headerlink" href="#module-cluster" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-cluster"></span><dl class="function">
+<dt id="cluster.cluster">
+<tt class="descclassname">cluster.</tt><tt class="descname">cluster</tt><big>(</big><em>data</em>, <em>K=10</em>, <em>cov_type='full'</em>, <em>assign_prob=None</em><big>)</big><a class="headerlink" href="#cluster.cluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit a GMM (from sklearn.mixture) to the data, forming clusters of 
+similar data points.</p>
+<dl class="docutils">
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>K</em>: </dt>
+<dd>number of clusters to fit to the data</dd>
+<dt><em>cov_type</em>: </dt>
+<dd>Type of covariance matrix to use in the GMM. 
+(&#8216;tied&#8217;, &#8216;diag&#8217;, default is &#8216;full&#8217;)</dd>
+<dt><em>assign_prob</em>: </dt>
+<dd>The lower probability limit that a data point belongs to a 
+cluster to assign it to that cluster.  If not set, assigns 
+a point to the cluster with the highest probability.  Don&#8217;t
+set this to less than 0.5 since it is possible to have one data 
+point with p&gt;0.49 of belonging in two different clusters.</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>gmm</em>:</dt>
+<dd>GMM object (from sklearn.mixture)</dd>
+<dt><em>clusters</em>:</dt>
+<dd>A dictionary with keys as cluster ids and values are arrays of
+indices of the data belonging to the cluster.  So, calling 
+clusters[1] will return the indices of the data rows belonging to
+cluster 1.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="cluster.fit_ica">
+<tt class="descclassname">cluster.</tt><tt class="descname">fit_ica</tt><big>(</big><em>data</em>, <em>dims</em><big>)</big><a class="headerlink" href="#cluster.fit_ica" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit ICA decomposition to the data with dims components</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>Data for ICA fitting</dd>
+<dt><em>dims</em>:</dt>
+<dd>Number of ICA components to use</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>ICA object (from sklearn.decomposition),
+N x dims NumPy array of data projected onto ICA components</dd>
+</dl>
+<p>I haven&#8217;t found this to work well, but your results might be better.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cluster.fit_pca">
+<tt class="descclassname">cluster.</tt><tt class="descname">fit_pca</tt><big>(</big><em>data</em>, <em>dims</em><big>)</big><a class="headerlink" href="#cluster.fit_pca" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit PCA decomposition to the data with dims components</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>data</em>:</dt>
+<dd>Data for PCA fitting</dd>
+<dt><em>dims</em>:</dt>
+<dd>Number of PCA components to use</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong>:</dt>
+<dd>PCA object (from sklearn.decomposition),
+N x dims NumPy array of data projected onto PCA components</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="cluster.load_clusters">
+<tt class="descclassname">cluster.</tt><tt class="descname">load_clusters</tt><big>(</big><em>filepath</em><big>)</big><a class="headerlink" href="#cluster.load_clusters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads clusters from pickled file at filepath.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cluster">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-cluster" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-cluster"></span><dl class="class">
+<dt id="cluster.Clusters">
+<em class="property">class </em><tt class="descclassname">cluster.</tt><tt class="descname">Clusters</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#cluster.Clusters" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary that contains clustered spike data.</p>
+<p>The methods for this class assumes the values are numpy recarrays
+with fields &#8216;spikes&#8217;, &#8216;times&#8217;, and &#8216;feats&#8217; (features).</p>
+<dl class="docutils">
+<dt><strong>Attributes</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>ids</em>:</dt>
+<dd>Cluster ids</dd>
+</dl>
+</dd>
+</dl>
+<p>Inherits from <tt class="xref py py-func docutils literal"><span class="pre">dict()</span></tt>.</p>
+<dl class="method">
+<dt id="cluster.Clusters.change_id">
+<tt class="descname">change_id</tt><big>(</big><em>current_id</em>, <em>new_id</em><big>)</big><a class="headerlink" href="#cluster.Clusters.change_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change the id number of a cluster.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.combine">
+<tt class="descname">combine</tt><big>(</big><em>source</em>, <em>destination</em><big>)</big><a class="headerlink" href="#cluster.Clusters.combine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine source cluster into destination cluster.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big><a class="headerlink" href="#cluster.Clusters.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a copy.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.features">
+<tt class="descname">features</tt><big>(</big><big>)</big><a class="headerlink" href="#cluster.Clusters.features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns only the feature arrays from the clusters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.flatten">
+<tt class="descname">flatten</tt><big>(</big><big>)</big><a class="headerlink" href="#cluster.Clusters.flatten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flattens the clusters into a single array</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.save">
+<tt class="descname">save</tt><big>(</big><em>filepath</em><big>)</big><a class="headerlink" href="#cluster.Clusters.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the clusters as a pickled dictionary to filepath.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.select">
+<tt class="descname">select</tt><big>(</big><em>clusters</em><big>)</big><a class="headerlink" href="#cluster.Clusters.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Selects multiple clusters which you want returned for further 
+analysis.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>clusters</em>:</dt>
+<dd>A list of the clusters you want returned.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.sizes">
+<tt class="descname">sizes</tt><big>(</big><big>)</big><a class="headerlink" href="#cluster.Clusters.sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the size of each cluster.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.spikes">
+<tt class="descname">spikes</tt><big>(</big><big>)</big><a class="headerlink" href="#cluster.Clusters.spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns only the spike waveform arrays from the clusters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Clusters.times">
+<tt class="descname">times</tt><big>(</big><big>)</big><a class="headerlink" href="#cluster.Clusters.times" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns only the timestamp arrays from the clusters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cluster.Viewer">
+<em class="property">class </em><tt class="descclassname">cluster.</tt><tt class="descname">Viewer</tt><big>(</big><em>clusters</em><big>)</big><a class="headerlink" href="#cluster.Viewer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class used to view clustered data.</p>
+<p>Takes a Clusters object and supplies various methods for viewing the
+clustered data.</p>
+<dl class="docutils">
+<dt><strong>Attributes</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>clusters</em>:</dt>
+<dd>Clusters object containing the spike data</dd>
+<dt><em>cm</em>:</dt>
+<dd>Matplotlib color map used for coloring the clusters.  Feel free 
+to change this, I like this color map though.</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="cluster.Viewer.autocorrs">
+<tt class="descname">autocorrs</tt><big>(</big><em>clusters=None</em>, <em>bin_width=0.0015</em>, <em>limit=0.03</em>, <em>figsize=None</em><big>)</big><a class="headerlink" href="#cluster.Viewer.autocorrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots of autocorrelations of clustered spike times.</p>
+<dl class="docutils">
+<dt><strong>Keywords</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>clusters</em>: list or iterable</dt>
+<dd>List of clusters to plot</dd>
+<dt><em>bin_width</em>: float</dt>
+<dd>Width of bins in the autocorrelation calculation</dd>
+<dt><em>limit</em>: float</dt>
+<dd>Time limit over which to calculate the autocorrelation</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Viewer.crosscorrs">
+<tt class="descname">crosscorrs</tt><big>(</big><em>clusters=None</em>, <em>bin_width=0.0015</em>, <em>limit=0.03</em>, <em>figsize=(9</em>, <em>5)</em><big>)</big><a class="headerlink" href="#cluster.Viewer.crosscorrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots of cross-correlations of clustered spike times.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Viewer.scatter">
+<tt class="descname">scatter</tt><big>(</big><em>clusters=None, components=[1, 2, 3], limit=500</em><big>)</big><a class="headerlink" href="#cluster.Viewer.scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a scatter plot in feature space of the clustered data.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Viewer.scatter3D">
+<tt class="descname">scatter3D</tt><big>(</big><em>clusters=None, components=[1, 2, 3], limit=500</em><big>)</big><a class="headerlink" href="#cluster.Viewer.scatter3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3D scatter plot for viewing clusters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Viewer.spikes">
+<tt class="descname">spikes</tt><big>(</big><em>clusters=None</em>, <em>limit=50</em>, <em>figsize=None</em><big>)</big><a class="headerlink" href="#cluster.Viewer.spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates plots of clustered spike waveforms.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Viewer.timestamps">
+<tt class="descname">timestamps</tt><big>(</big><em>clusters=None</em>, <em>color='k'</em>, <em>xlims=(0</em>, <em>4000)</em>, <em>figsize=(9</em>, <em>6)</em><big>)</big><a class="headerlink" href="#cluster.Viewer.timestamps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the timestamps for clusters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cluster.Sorter">
+<em class="property">class </em><tt class="descclassname">cluster.</tt><tt class="descname">Sorter</tt><big>(</big><em>K=10</em>, <em>dims=10</em>, <em>cov_type='full'</em>, <em>decomp='pca'</em>, <em>assign_prob=0.5</em><big>)</big><a class="headerlink" href="#cluster.Sorter" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class performs the clustering using a Gaussian Mixture Model.
+It uses Viewer for plotting the results of the clustering.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>K</em>: (int)</dt>
+<dd>The number of clusters to fit to the data</dd>
+<dt><em>dims</em>: (int)</dt>
+<dd>The number of dimensions to reduce the data into</dd>
+<dt><em>cov_type</em>: (&#8216;diag&#8217;, &#8216;tied&#8217;, or &#8216;full&#8217;)</dt>
+<dd>Type of covariance matrix to use in the GMM, &#8216;tied&#8217; is faster,
+but less accurate than &#8216;full&#8217;.</dd>
+<dt><em>decomp</em>: (&#8216;pca&#8217; or &#8216;ica&#8217;)</dt>
+<dd>use PCA or ICA to reduce the dimensions of the data</dd>
+</dl>
+</dd>
+<dt><strong>Attributes</strong>:</dt>
+<dd><dl class="first last docutils">
+<dt><em>clusters</em>:</dt>
+<dd>Clusters object containing the spike data</dd>
+<dt><em>cm</em>:</dt>
+<dd>Matplotlib color map used for coloring the clusters.  Feel free 
+to change this, I like this color map though.</dd>
+<dt><em>params</em>:</dt>
+<dd>Dictionary containing parameters for the Sorter</dd>
+</dl>
+</dd>
+</dl>
+<p>Inherits from <a class="reference internal" href="#cluster.Viewer" title="cluster.Viewer"><tt class="xref py py-class docutils literal"><span class="pre">Viewer</span></tt></a>.</p>
+<dl class="method">
+<dt id="cluster.Sorter.bic">
+<tt class="descname">bic</tt><big>(</big><big>)</big><a class="headerlink" href="#cluster.Sorter.bic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the Baysian Information Criterion (BIC) for the model.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Sorter.combine">
+<tt class="descname">combine</tt><big>(</big><em>source</em>, <em>destination</em><big>)</big><a class="headerlink" href="#cluster.Sorter.combine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine two clusters, from source into destination.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Sorter.save">
+<tt class="descname">save</tt><big>(</big><em>filepath</em><big>)</big><a class="headerlink" href="#cluster.Sorter.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the clusters as a pickled dictionary to filepath.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Sorter.sort">
+<tt class="descname">sort</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#cluster.Sorter.sort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort the data into clusters based on spike waveform features.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cluster.Sorter.split">
+<tt class="descname">split</tt><big>(</big><em>source</em>, <em>K=2</em><big>)</big><a class="headerlink" href="#cluster.Sorter.split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resort a cluster into K new clusters.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="plots.html" title="Plots"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="process.html" title="Process"
+             >previous</a> |</li>
+        <li><a href="index.html">spikesort 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Mat Leonard.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
