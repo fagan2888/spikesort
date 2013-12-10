@@ -185,7 +185,7 @@ def form_tetrode(data, times, patch_size=30, offset=0, samp_rate=30000):
 
     **Arguments**:
         *data*:
-         The voltage signals of each channel in a the tetrode, used for 
+         The voltage signals of each channel in a tetrode, used for 
          extracting spikes.
 
         *times*:

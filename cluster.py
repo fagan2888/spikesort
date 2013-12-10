@@ -6,10 +6,12 @@
 .. moduleauthor:: Mat Leonard <leonard.mat@gmail.com>
 """
 
-import numpy as np
+import cPickle as pkl
 
+import numpy as np
 from sklearn.decomposition import PCA, FastICA
 from sklearn.mixture import GMM
+
 import plots as plt
 
 class ClusterIdError(Exception):
@@ -80,9 +82,7 @@ def cluster(data, K=10, cov_type='full', assign_prob=None):
 
     """
     
-    gmm = GMM(n_components = kwargs.get('K', 10),
-              covariance_type = kwargs.get('cov_type', 'full'))
-    
+    gmm = GMM(n_components=K, covariance_type=cov_type)
     gmm.fit(data)
 
     if assign_prob is None:
@@ -105,7 +105,6 @@ def cluster(data, K=10, cov_type='full', assign_prob=None):
 
 def load_clusters(filepath):
     """ Loads clusters from pickled file at filepath. """
-    import cPickle as pkl
     with open(filepath, 'r') as f:
         clusters = pkl.load(f)
     return Clusters(clusters)
@@ -409,6 +408,12 @@ class Sorter(Viewer):
              but less accurate than 'full'. 
             *decomp*: ('pca' or 'ica')
              use PCA or ICA to reduce the dimensions of the data
+            *assign_prob*: 
+             The lower probability limit that a data point belongs to a 
+             cluster to assign it to that cluster.  If not set, assigns 
+             a point to the cluster with the highest probability.  Don't
+             set this to less than 0.5 since it is possible to have one data 
+             point with p>0.49 of belonging in two different clusters.
 
         **Attributes**:
             *clusters*:
@@ -425,7 +430,7 @@ class Sorter(Viewer):
     
     decomps = {'pca':fit_pca, 'ica':fit_ica}
     
-    def __init__(self, K=10, dims=10, cov_type='full', decomp='pca', assign_prob=0.5):
+    def __init__(self, K=10, dims=10, cov_type='full', decomp='pca', assign_prob=None):
         """ 
             **Arguments**:
                 *K*: (int)
@@ -437,11 +442,17 @@ class Sorter(Viewer):
                  but less accurate than 'full'. 
                 *decomp*: ('pca' or 'ica')
                  use PCA or ICA to reduce the dimensions of the data
+                *assign_prob*: 
+                 The lower probability limit that a data point belongs to a 
+                 cluster to assign it to that cluster.  If not set, assigns 
+                 a point to the cluster with the highest probability.  Don't
+                 set this to less than 0.5 since it is possible to have one data 
+                 point with p>0.49 of belonging in two different clusters.
+
         """
         
         self.params = {'K':K, 'dims':dims, 'cov_type':cov_type, 'decomp':decomp, 
                        'assign_prob':assign_prob}
-        self.params.update(kwargs)
         self.data = None
         self.gmm, self.clusters = None, None
         self.cm = plt.plt.cm.Paired
@@ -454,7 +465,9 @@ class Sorter(Viewer):
         
         decomp_func = self.decomps[self.params['decomp']]
         decomped, reduced = decomp_func(data, dims=self.params['dims'])
-        self.gmm, clustered = cluster(reduced, **self.params)
+        self.gmm, clustered = cluster(reduced, K=self.params['K'], 
+                                      cov_type=self.params['cov_type'],
+                                      assign_prob=self.params['assign_prob'])
         
         self.clusters = Clusters()
         for c_id in clustered:
