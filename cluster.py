@@ -7,6 +7,7 @@
 """
 
 import cPickle as pkl
+import os
 
 import numpy as np
 from sklearn.decomposition import PCA, FastICA
@@ -105,7 +106,8 @@ def cluster(data, K=10, cov_type='full', assign_prob=None):
 
 def load_clusters(filepath):
     """ Loads clusters from pickled file at filepath. """
-    with open(filepath, 'r') as f:
+    import os.path
+    with open(os.path.expanduser(filepath), 'r') as f:
         clusters = pkl.load(f)
     return Clusters(clusters)
 
@@ -287,7 +289,7 @@ class Viewer(object):
             spks = cl_spikes[cl]
             plt.spikes(spks, ax=ax, color=colors[cl], patch_size=spks.shape[1]/4)
             ax.set_title('Cluster {}'.format(cl))
-            ax.set_ylabel('Voltage (mv)')
+            ax.set_ylabel('Voltage (uv)')
             ax.set_xticklabels('')
         
         fig.tight_layout()
