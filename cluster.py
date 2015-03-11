@@ -191,7 +191,7 @@ class Clusters(dict):
         if new_id in self:
             raise ClusterIdError('Cluster {} already exists.'.format(new_id))
         else:
-            self.update({destination:self.pop(source)})
+            self.update({destination:self.pop(current_id)})
         return self
 
     def copy(self):
@@ -202,17 +202,49 @@ class Clusters(dict):
     def ids(self):
         return self.keys()
 
-    def save(self, filepath):
-        """ Save the clusters as a pickled dictionary to filepath. """
-        import cPickle as pkl
-        from os import path
+    def save(self, filepath, format='pickle'):
+        """ Save the clusters to file. """
+        
+        save_func = {'pickle':self._save_pickle,
+                     'csv':self._save_csv}
 
-        filepath = path.expanduser(filepath)
+        filepath = os.path.expanduser(filepath)
+        
+        ret = False
+        try:
+            ret = save_func[format](filepath)
+        except Exception as e:
+            print(e)
 
+        if ret:
+            print("{} clusters saved at {}".format(len(self), filepath))
+        else:
+            print("Saving failed")
+
+    def _save_pickle(self, filepath):
+        
         with open(filepath, 'w') as f:
             output = {key: value for key, value in self.iteritems()}
             pkl.dump(output, f)
-        print("{} clusters saved at {}".format(len(self), filepath))
+
+        return True
+
+    def _save_csv(self, filepath):
+        """ Save the clusters as three files, spike waveforms, PCA features,
+            and spike times.
+
+            Not fully implemented yet.
+        """
+        
+        with open(filepath, 'a') as f:
+            for each in self.sizes():
+                f.write('{},'.format(str(each)))
+            f.write('\n')
+            for each in self.times():
+                f.write(str(each.tolist())[1:-1])
+                f.write('\n')
+
+        return True
 
     def __repr__(self):
         return str("Clusters: {}".format(self.sizes()))
@@ -241,7 +273,7 @@ class Viewer(object):
             self.clusters = clusters
         self.cm = plt.plt.cm.Paired
         
-    def scatter(self, clusters=None, components=[1,2,3], limit=500):
+    def scatter(self, clusters=None, components=[1,2,3], limit=500, figsize=(16,5)):
         """ Generates a scatter plot in feature space of the clustered data.
         """
         from scipy.misc import comb
@@ -251,14 +283,16 @@ class Viewer(object):
         feats, col_array = self._scatter_helper(clusters, limit)
         N_plots = int(comb(len(components), 2, exact=True))
         
-        fig, axes = plt.generate_axes(N_plots, ncols=3, num=1, figsize=(16,5))
+        fig, axes = plt.generate_axes(N_plots, ncols=3, num=1, figsize=figsize)
         for ax, (x,y) in zip(axes,combinations(components,2)):
             ax.clear() # Clear the axes before replotting
             plt.scatter(feats[:,x], feats[:,y], colors=col_array, ax=ax)
-            ax.set_xlabel("Component {}".format(x))
-            ax.set_ylabel("Component {}".format(y))
+            ax.set_xlabel("Component {}".format(x+1))
+            ax.set_ylabel("Component {}".format(y+1))
         
         fig.tight_layout()
+
+        self.figures['scatter'] = fig
         
         return self
     
@@ -272,7 +306,7 @@ class Viewer(object):
         
         ax.figure.tight_layout()
         
-        return self
+        return ax
         
     def spikes(self, clusters=None, limit=50, figsize=None):
         """ Generates plots of clustered spike waveforms.
@@ -294,7 +328,7 @@ class Viewer(object):
         
         fig.tight_layout()
         
-        return self
+        return fig
         
     def autocorrs(self, clusters=None, bin_width=0.0015, limit=0.03, 
                         figsize=None):
@@ -321,11 +355,11 @@ class Viewer(object):
             plt.autocorr(tstamps, ax=ax, color=colors[cl], 
                          bin_width=bin_width, limit=limit)
             ax.set_title('Cluster {}'.format(cl))
-            ax.set_xlabel('Time (ms)')
+            ax.set_xlabel('Lag (ms)')
         
         fig.tight_layout()
         
-        return self
+        return fig
 
     def crosscorrs(self, clusters=None, bin_width=0.0015, limit=0.03, 
                          figsize=(9,5)):
@@ -357,7 +391,7 @@ class Viewer(object):
                 ax.set_xticklabels('')
                 ax.set_yticklabels('')
         
-        return self
+        return fig
 
     def timestamps(self, clusters=None, color='k', xlims=(0,4000), figsize=(9,6)):
         """ Plot the timestamps for clusters. """
@@ -369,6 +403,8 @@ class Viewer(object):
             ax.set_title('Cluster {}'.format(cl))
         fig.tight_layout()
 
+	return fig
+
     def feature_trace(self, dimension, clusters=None, marker='o', color='k', xlims=(0,4000), figsize=(9,6)):
         clusters = self.clusters.select(clusters)
         fig, axes = plt.generate_axes(len(clusters), 2, figsize=figsize)
@@ -378,6 +414,8 @@ class Viewer(object):
                               ax=ax, color=color, marker=marker, xlims=xlims)
             ax.set_title('Cluster {}'.format(cl))
         fig.tight_layout()
+	
+	return fig
 
     def _scatter_helper(self, clusters=None, limit=500):
         """ A helper method to generate the data for the scatter plots. """
