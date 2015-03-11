@@ -7,6 +7,7 @@
 from functools import wraps
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 
 def color_array(clusters, color_dict):
