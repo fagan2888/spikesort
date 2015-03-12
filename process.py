@@ -134,7 +134,7 @@ def load_spikes(filename, ncols=120):
 
     return recarray
 
-def detect_spikes(data, threshold=4, patch_size=30):
+def detect_spikes(data, threshold=4, patch_size=30, offset=0):
     """ Detect spikes in data.
 
     **Arguments**:
@@ -168,7 +168,7 @@ def detect_spikes(data, threshold=4, patch_size=30):
     peaks = crossings(data, threshold, polarity='neg')
     peaks = censor(peaks, 30)
     
-    spikes, times = extract(data, peaks, patch_size=patch_size)
+    spikes, times = extract(data, peaks, patch_size=patch_size, offset=offset)
 
     records = [('spikes', 'f8', patch_size), ('times', 'f8', 1)]
     detected = np.zeros(len(times), dtype=records)
