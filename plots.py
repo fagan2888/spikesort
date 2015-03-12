@@ -77,7 +77,7 @@ def passed_or_new_ax(func):
     return inner
 
 @passed_or_new_ax
-def scatter(x, y, ax=None, trim=1, colors='k'):
+def scatter(x, y, ax=None, trim=1, colors='k', s=5):
     """ Generates a scatter plot.  The number of points is reduced by the
         value of trim, so if you are plotting a bunch of points, it won't
         show them all.  Set trim=0.5 to plot half the points, for example.
@@ -99,7 +99,7 @@ def scatter(x, y, ax=None, trim=1, colors='k'):
         x, y = trim_data(x, y, trim=trim)
     else:
         x, y, colors = trim_data(x, y, colors, trim=trim)
-    ax.scatter(x, y, c=colors, marker='.', s=5, edgecolor = 'face')
+    ax.scatter(x, y, c=colors, marker='.', s=s, edgecolor = 'face')
     return ax
 
 @passed_or_new_ax
@@ -129,8 +129,8 @@ def spikes(data, ax=None, color='r', limit=50, patch_size=30):
     means = [ spike_mean[left:right] for left, right in pslices ]
     
     for x, p, m in zip(xs, patches, means):
-        ax.plot(x, p, color=color, alpha=0.3)
-        ax.plot(x, m, color='k')
+        ax.plot(x, p, color=color, alpha=0.2)
+        #ax.plot(x, m, color='k')
         ax.set_xlim((0,4*patch_size+30))
     
     return ax
