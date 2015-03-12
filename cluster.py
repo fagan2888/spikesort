@@ -273,7 +273,7 @@ class Viewer(object):
             self.clusters = clusters
         self.cm = plt.plt.cm.Paired
         
-    def scatter(self, clusters=None, components=[1,2,3], limit=500, figsize=(16,5)):
+    def scatter(self, clusters=None, components=[1,2,3], limit=500, figsize=(16,5), s=5):
         """ Generates a scatter plot in feature space of the clustered data.
         """
         from scipy.misc import comb
@@ -286,15 +286,13 @@ class Viewer(object):
         fig, axes = plt.generate_axes(N_plots, ncols=3, num=1, figsize=figsize)
         for ax, (x,y) in zip(axes,combinations(components,2)):
             ax.clear() # Clear the axes before replotting
-            plt.scatter(feats[:,x], feats[:,y], colors=col_array, ax=ax)
+            plt.scatter(feats[:,x], feats[:,y], colors=col_array, ax=ax, s=s)
             ax.set_xlabel("Component {}".format(x+1))
             ax.set_ylabel("Component {}".format(y+1))
         
         fig.tight_layout()
-
-        self.figures['scatter'] = fig
         
-        return self
+        return fig
     
     def scatter3D(self, clusters=None, components=[1,2,3], limit=500):
         """ Generates a 3D scatter plot for viewing clusters. 
@@ -323,7 +321,7 @@ class Viewer(object):
             spks = cl_spikes[cl]
             plt.spikes(spks, ax=ax, color=colors[cl], patch_size=spks.shape[1]/4)
             ax.set_title('Cluster {}'.format(cl))
-            ax.set_ylabel('Voltage (uv)')
+            ax.set_ylabel('Voltage (uV)')
             ax.set_xticklabels('')
         
         fig.tight_layout()
